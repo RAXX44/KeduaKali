@@ -1,0 +1,14 @@
+{
+  "task": "context_menu_binary_relevance",
+  "test_accuracy": 0.7273612463485881,
+  "test_relevance_mae": 0.2519669830799103,
+  "test_binary_probability_mae_ref": 0.2800447344779968,
+  "accuracy_target_85pct_passed": false,
+  "mae_target_0_02_passed": false,
+  "precision_at_5": 0.11514581373471308,
+  "recall_at_5": 0.5625587958607714,
+  "hit_rate_at_5": 0.5700846660395108,
+  "ndcg_at_5": 0.33129407314173387,
+  "coverage": 1.0,
+  "example_intra_list_diversity": 0.8514502048492432
+}

@@ -1,0 +1,22 @@
+# Node & Dependencies
+node_modules/
+npm-debug.log
+
+# Build output (Frontend Vite)
+dist/
+build/
+
+# Environment Variables (Sangat Penting!)
+.env
+.env.local
+
+# Python / AI / FastAPI
+__pycache__/
+venv/
+env/
+*.pyc
+.pytest_cache/
+
+# OS Files (MacOS/Windows)
+.DS_Store
+Thumbs.db

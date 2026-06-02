@@ -1,0 +1,139 @@
+Dokumentasi Integrasi AI Service — KeduaKali Platform
+
+
+Dokumen ini berisi panduan lengkap untuk menjalankan, menguji, dan mengintegrasikan AI Prediction Service ke dalam backend utama (ExpressJS) platform KeduaKali. 
+
+Sistem AI berjalan sebagai **Microservice** independen menggunakan FastAPI (Python). Server ExpressJS nantinya hanya perlu melakukan HTTP POST *request* ke server AI ini untuk mendapatkan hasil prediksi surplus makanan.
+
+1. Arsitektur Sistem
+Frontend (React/Vite) ↔️ Backend Utama (ExpressJS) ↔️ AI Microservice (FastAPI)
+
+- Backend Utama (Express) bertugas mengelola autentikasi, database, dan *business logic* umum.
+- AI Microservice (FastAPI) bertugas murni hanya untuk menerima data restoran, memprosesnya dengan model XGBoost, dan mengembalikan prediksi beserta status surplus.
+
+2. Cara Menjalankan AI Server di Local
+Agar bisa testing integrasi di laptop masing-masing, ikuti langkah berikut untuk menyalakan server AI-nya.
+
+Pastikan Python sudah terinstall.
+
+1. Buka Terminal/CMD dan arahkan ke dalam folder `keduakali_ai_service` (folder yang berisi app.py dan file .pkl).
+2. Buat Virtual Environment (Agar library Python tidak bentrok):
+  
+python -m venv venv
+
+## 3. Aktifkan Virtual Environment:
+
+* Windows: venv\Scripts\activate
+
+## 4. Install Dependencies:
+
+pip install -r requirements.txt
+
+5. Jalankan Server AI:
+
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+
+3. API Contract (Format Request & Response)
+Berikut adalah detail endpoint yang harus ditembak oleh ExpressJS.
+
+URL: http://localhost:8000/predict
+
+Method: POST
+
+Content-Type: application/json
+
+Request Payload (Body)
+Kirimkan data JSON dengan format persis seperti di bawah ini. Pastikan tipe datanya sesuai.
+{
+  "restaurant_id": 1,
+  "restaurant_type": "Casual Dining",
+  "menu_item_name": "Chicken Chop",
+  "meal_type": "Dinner",
+  "typical_ingredient_cost": 15000,
+  "observed_market_price": 35000,
+  "actual_selling_price": 30000,
+  "weather_condition": "Rainy",
+  "has_promotion": true,
+  "special_event": false,
+  "day_of_week": 5, 
+  "is_weekend": 1,
+  "month": 5
+}
+
+Catatan Tipe Data:
+
+day_of_week: Integer (0 = Senin, 6 = Minggu).
+is_weekend: Integer (1 = Ya, 0 = Tidak).
+has_promotion & special_event: Boolean (true/false).
+
+Response Payload
+Server AI akan merespons dengan JSON yang sudah difilter menjadi business insight yang siap ditampilkan ke User:
+{
+  "predicted_sales_qty": 45.0,
+  "status": "Surplus Kritis",
+  "recommendation": "Diskon segera! Prediksi penjualan sangat rendah.",
+  "model_r2_score": "0.7972"
+}
+
+status: Bisa bernilai "Aman", "Waspada", atau "Surplus Kritis". Frontend bisa menggunakan string ini untuk mengubah warna UI (misal: Merah untuk Kritis, Kuning untuk Waspada).
+
+recommendation: Pesan Call-to-Action yang bisa langsung di-render ke UI.
+
+4. Testing (Swagger UI)
+Sebelum menulis kode di ExpressJS, kalian bisa mengetes API ini secara visual:
+
+Pastikan server Uvicorn menyala.
+
+Buka browser dan pergi ke: http://localhost:8000/docs
+
+Buka dropdown POST /predict.
+
+Klik tombol "Try it out".
+
+Edit JSON-nya dan klik "Execute". Lihat hasilnya di bagian Server response.
+
+5. Contoh Integrasi di ExpressJS (Backend Utama)
+Ini adalah snippet atau contoh kode untuk controller ExpressJS kalian menggunakan axios untuk menembak API AI.
+
+const axios = require('axios');
+
+// Controller untuk fitur prediksi
+exports.getSurplusPrediction = async (req, res) => {
+    try {
+        // 1. Ambil data dari database atau request frontend
+        // Pastikan variabel ini disesuaikan dengan skema database kita
+        const restaurantData = {
+            restaurant_id: req.body.restaurant_id,
+            restaurant_type: req.body.restaurant_type,
+            menu_item_name: req.body.menu_item_name,
+            meal_type: req.body.meal_type,
+            typical_ingredient_cost: req.body.typical_ingredient_cost,
+            observed_market_price: req.body.observed_market_price,
+            actual_selling_price: req.body.actual_selling_price,
+            weather_condition: req.body.weather_condition, 
+            has_promotion: req.body.has_promotion,
+            special_event: req.body.special_event,
+            day_of_week: req.body.day_of_week,
+            is_weekend: req.body.is_weekend,
+            month: req.body.month
+        };
+
+        // 2. Tembak ke AI Microservice (Pastikan URL sesuai env variable saat deploy)
+        const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+        const aiResponse = await axios.post(`${AI_SERVICE_URL}/predict`, restaurantData);
+
+        // 3. Kembalikan hasil dari AI ke Frontend React kita
+        return res.status(200).json({
+            success: true,
+            message: "Prediksi AI berhasil digenerate",
+            data: aiResponse.data
+        });
+
+    } catch (error) {
+        console.error("AI Service Error:", error.message);
+        return res.status(500).json({
+            success: false,
+            message: "Gagal memproses prediksi dari AI Service"
+        });
+    }
+};

@@ -1,0 +1,8 @@
+id,restaurant_id,category,menu_item_name,actual_selling_price,menu_key,feature_row,restaurant_type,meal_type,weather_condition
+7,1,Roti & Kue,Roti Croisnt,32333,roti croisnt,0,casual dining,lunch,sunny
+4,2,Minuman,Badak,10000,badak,1,casual dining,lunch,sunny
+5,1,Nasi & Lauk,Ayam Bakar,21000,ayam bakar,2,casual dining,lunch,sunny
+2,1,Nasi & Lauk,Ayam,20000,ayam,3,casual dining,lunch,sunny
+8,1,Roti & Kue,Roti jala,23133,roti jala,4,casual dining,lunch,sunny
+9,1,Makanan & Minuman,sprite,224933,sprite,5,casual dining,lunch,sunny
+11,2,Nasi & Lauk,ayam goreng,100023,ayam goreng,6,casual dining,lunch,sunny

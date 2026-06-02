@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── TRIK GLOBAL SCALE DOWN (SUPER APP) ─── */
+@layer base {
+  html {
+    /* Ukuran bawaan HP (100% = 16px) */
+    font-size: 16px; 
+  }
+
+  /* Saat layar mencapai ukuran Laptop/Desktop (Lebar min 1024px) */
+  @media (min-width: 1024px) {
+    html {
+      /* Mengecilkan SELURUH aplikasi sebesar ~12.5% otomatis */
+      font-size: 14px; 
+    }
+  }
+
+  /* Opsional: Saat layar PC sangat lebar (Monitor 4K) */
+  @media (min-width: 1536px) {
+    html {
+      /* Kembalikan sedikit lebih besar agar tidak terlalu kecil di layar raksasa */
+      font-size: 15px; 
+    }
+  }
+}
+
+/* (Kode scrollbar-hide dan body milikmu yang lama tetap di bawah sini) */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: #f3f4f6;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* Utilitas tambahan untuk layar HP modern (iPhone notch) yang kita bahas sebelumnya */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}

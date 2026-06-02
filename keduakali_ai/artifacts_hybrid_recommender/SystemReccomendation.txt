@@ -1,0 +1,272 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import pandas as pd
+import numpy as np
+import joblib
+import tensorflow as tf
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import os
+
+# ==============================================================================
+# 1. KONFIGURASI FASTAPI
+# ==============================================================================
+# Catatan: Kalau gabungin ke app.py yang udah ada, 
+# bagian 'app = FastAPI(...)' nggak usah dicopas lagi ya.
+
+app = FastAPI(
+    title="KeduaKali Recommender API",
+    description="API Cerdas untuk Rekomendasi Makanan Sisa (Cantyka)",
+    version="1.0.0"
+)
+
+# ==============================================================================
+# 2. DEFINISI CUSTOM OBJECTS MODEL KERAS
+# ==============================================================================
+@tf.keras.utils.register_keras_serializable(package="KeduaKali")
+class L2Normalize(tf.keras.layers.Layer):
+    def __init__(self, axis: int = -1, epsilon: float = 1e-8, **kwargs):
+        super().__init__(**kwargs)
+        self.axis = axis
+        self.epsilon = epsilon
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        return tf.math.l2_normalize(inputs, axis=self.axis, epsilon=self.epsilon)
+    def get_config(self) -> dict:
+        config = super().get_config()
+        config.update({"axis": self.axis, "epsilon": self.epsilon})
+        return config
+
+@tf.keras.utils.register_keras_serializable(package="KeduaKali")
+class DemandWeightedBCELoss(tf.keras.losses.Loss):
+    def __init__(self, mae_weight: float = 0.10, reduction=tf.keras.losses.Reduction.NONE, **kwargs):
+        super().__init__(reduction=reduction, **kwargs)
+        self.mae_weight = mae_weight
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        y_true = tf.cast(y_true, tf.float32)
+        y_pred = tf.clip_by_value(tf.cast(y_pred, tf.float32), 1e-7, 1.0 - 1e-7)
+        bce = tf.keras.backend.binary_crossentropy(y_true, y_pred)
+        bce = tf.reshape(bce, tf.shape(y_true))
+        mae = tf.abs(y_true - y_pred)
+        return bce + self.mae_weight * mae
+    def get_config(self) -> dict:
+        config = super().get_config()
+        config.update({"mae_weight": self.mae_weight})
+        return config
+
+# ==============================================================================
+# 3. LOAD ARTEFAK AI SAAT STARTUP
+# ==============================================================================
+# Catatan: Masukkan isi fungsi ini ke dalam @app.on_event("startup") milik kalian
+@app.on_event("startup")
+def load_recommender_artifacts():
+    global ncf_model, user_embedding_model, mean_user_embedding
+    global user_encoder, item_encoder, ingredient_encoder, category_encoder, content_numeric_scaler
+    global CONTENT_CAT_COLS, CONTENT_NUMERIC_COLS, hybrid_features, hybrid_meta
+    
+    try:
+        artifact_dir = "artifacts_hybrid_recommender/"
+        
+        # Load Preprocessor
+        preprocess_arts = joblib.load(artifact_dir + "hybrid_preprocess_artifacts.joblib")
+        user_encoder = preprocess_arts["user_encoder"]
+        item_encoder = preprocess_arts["item_encoder"]
+        ingredient_encoder = preprocess_arts["ingredient_encoder"]
+        category_encoder = preprocess_arts["category_encoder"]
+        content_numeric_scaler = preprocess_arts["content_numeric_scaler"]
+        CONTENT_CAT_COLS = preprocess_arts["content_cat_cols"]
+        CONTENT_NUMERIC_COLS = preprocess_arts["content_numeric_cols"]
+        
+        # Load Data Menu & Fitur
+        hybrid_meta = pd.read_csv(artifact_dir + "hybrid_item_metadata.csv")
+        hybrid_features = np.load(artifact_dir + "hybrid_augmented_features.npy")
+        
+        # Load Model Keras
+        ncf_model = tf.keras.models.load_model(
+            artifact_dir + "kedua_kali_ncf_model.keras",
+            custom_objects={"L2Normalize": L2Normalize, "DemandWeightedBCELoss": DemandWeightedBCELoss}
+        )
+        
+        # Siapkan Extractor Model
+        user_input = tf.keras.Input(shape=(), name="user_id", dtype="int32")
+        gmf_user = ncf_model.get_layer("gmf_user_emb")(user_input)
+        mlp_user = ncf_model.get_layer("mlp_user_emb")(user_input)
+        gmf_user = tf.keras.layers.Flatten(name="extract_gmf_user_flatten")(gmf_user)
+        mlp_user = tf.keras.layers.Flatten(name="extract_mlp_user_flatten")(mlp_user)
+        output = tf.keras.layers.Concatenate(name="combined_user_embedding")([gmf_user, mlp_user])
+        output = L2Normalize(name="combined_user_l2")(output)
+        user_embedding_model = tf.keras.Model(user_input, output, name="ncf_user_embedding_extractor")
+        
+        # Hitung rata-rata kebiasaan pelanggan
+        all_user_indices = np.arange(len(user_encoder.classes_), dtype="int32")
+        all_user_embeddings = user_embedding_model.predict(all_user_indices, batch_size=512, verbose=0)
+        mean_user_embedding = all_user_embeddings.mean(axis=0)
+        
+        print("✅ Otak Sistem Rekomendasi berhasil dimuat!")
+    except Exception as e:
+        print(f"❌ Gagal memuat artefak model: {e}")
+
+# ==============================================================================
+# 4. FUNGSI-FUNGSI PENDUKUNG INFERENCE
+# ==============================================================================
+def clean_text(value: object) -> str:
+    text = "" if pd.isna(value) else str(value).lower()
+    text = re.sub(r"[^a-z0-9\s_,-]", " ", text)
+    return re.sub(r"\s+", " ", text).strip() if text else "unknown"
+
+def split_ingredients(value: object) -> list[str]:
+    return [part.strip() for part in re.split(r"[,|;/]+", clean_text(value)) if part.strip() and part.strip() != "unknown"]
+
+def l2_normalize_np(matrix: np.ndarray, axis: int = 1, epsilon: float = 1e-8) -> np.ndarray:
+    matrix = np.asarray(matrix, dtype="float32")
+    norm = np.maximum(np.linalg.norm(matrix, axis=axis, keepdims=True), epsilon)
+    return matrix / norm
+
+def normalize_01(values) -> np.ndarray:
+    values = np.asarray(list(values), dtype="float32")
+    if len(values) == 0: return values
+    min_val, max_val = np.nanmin(values), np.nanmax(values)
+    if np.isclose(max_val - min_val, 0): return np.zeros_like(values, dtype="float32")
+    return (values - min_val) / (max_val - min_val)
+
+def make_context_from_request(req) -> str:
+    fields = [
+        getattr(req, "restaurant_id", "unknown_restaurant"),
+        req.restaurant_type, req.meal_type, req.weather_condition,
+        getattr(req, "price_segment", "regular"),
+        f"dow_{req.day_of_week}", f"weekend_{req.is_weekend}",
+        f"promo_{req.has_promotion}", f"event_{req.special_event}"
+    ]
+    return "|".join(clean_text(field) for field in fields)
+
+def build_query_hybrid_vector(req) -> np.ndarray:
+    valid_ingredients = [ing for ing in split_ingredients(req.extra_preferences) if ing in ingredient_encoder.classes_]
+    if not valid_ingredients: valid_ingredients = ["unknown"]
+    x_ingredients = ingredient_encoder.transform([valid_ingredients]).astype("float32")
+    
+    cat_frame = pd.DataFrame([{
+        "restaurant_type": clean_text(req.restaurant_type),
+        "meal_type": clean_text(req.meal_type),
+        "price_segment": clean_text(getattr(req, "price_segment", "regular")),
+        "waste_level": "high_waste",
+    }], columns=CONTENT_CAT_COLS)
+    x_category = category_encoder.transform(cat_frame).astype("float32")
+    
+    median_numeric = hybrid_meta[CONTENT_NUMERIC_COLS].median(numeric_only=True).to_frame().T
+    x_numeric = content_numeric_scaler.transform(median_numeric[CONTENT_NUMERIC_COLS]).astype("float32")
+    
+    query_content = l2_normalize_np(np.hstack([x_ingredients, x_category, x_numeric]).astype("float32"))[0]
+
+    context_id = make_context_from_request(req)
+    if context_id in set(user_encoder.classes_):
+        user_idx = user_encoder.transform([context_id]).astype("int32")
+        query_cf = user_embedding_model.predict(user_idx, verbose=0)[0]
+    else:
+        query_cf = mean_user_embedding
+    
+    query_cf = query_cf / max(np.linalg.norm(query_cf), 1e-8)
+    query = np.hstack([query_content, query_cf]).astype("float32")
+    return query / max(np.linalg.norm(query), 1e-8)
+
+def compute_ncf_scores(candidates: pd.DataFrame, req) -> np.ndarray:
+    context_id = make_context_from_request(req)
+    scores = np.full(len(candidates), 0.5, dtype="float32")
+    if context_id not in set(user_encoder.classes_): return scores
+    
+    valid = candidates["menu_key"].isin(set(item_encoder.classes_)).values
+    if not valid.any(): return scores
+
+    user_idx = user_encoder.transform([context_id])[0]
+    item_idx = item_encoder.transform(candidates.loc[valid, "menu_key"])
+    inputs = {
+        "user_id": np.full(len(item_idx), user_idx, dtype="int32"),
+        "item_id": item_idx.astype("int32"),
+    }
+    scores[valid] = ncf_model.predict(inputs, verbose=0).reshape(-1)
+    return scores
+
+def load_surplus_candidates(path="surplus_predictions.csv") -> pd.DataFrame:
+    if not os.path.exists(path): return None
+    surplus = pd.read_csv(path)
+    surplus.columns = [str(col).strip() for col in surplus.columns]
+    if "menu_item_name" not in surplus.columns: return None
+    surplus["menu_key"] = surplus["menu_item_name"].map(clean_text)
+    surplus["predicted_surplus"] = pd.to_numeric(surplus.get("predicted_surplus", 0.0), errors="coerce").fillna(0.0)
+    return surplus
+
+# ==============================================================================
+# 5. ENDPOINT API REKOMENDASI (Yang Akan Dipanggil oleh Tim Web)
+# ==============================================================================
+class RecommendationRequest(BaseModel):
+    restaurant_id: str = "unknown_restaurant"
+    restaurant_type: str
+    meal_type: str
+    weather_condition: str
+    price_segment: str = "regular"
+    day_of_week: int = 0
+    is_weekend: int = 0
+    has_promotion: int = 0
+    special_event: int = 0
+    extra_preferences: str = ""
+    top_k: int = 5
+
+@app.post("/api/recommend")
+async def get_recommendations(req: RecommendationRequest):
+    try:
+        candidates = hybrid_meta.copy()
+        
+        # 1. BACA DATA SURPLUS FARHAN 
+        surplus_candidates = load_surplus_candidates("surplus_predictions.csv")
+        
+        if surplus_candidates is not None:
+            merged = candidates.merge(surplus_candidates[["menu_key", "predicted_surplus"]], on="menu_key", how="inner")
+            positive = merged[merged["predicted_surplus"] > 0].copy()
+            if not positive.empty:
+                candidates = positive
+            else:
+                candidates["predicted_surplus"] = candidates["Wastage Food Amount"]
+        else:
+            candidates["predicted_surplus"] = candidates["Wastage Food Amount"]
+
+        if (candidates["predicted_surplus"] <= 0).all():
+            candidates["predicted_surplus"] = candidates["quantity_sold"].max() - candidates["quantity_sold"]
+        
+        candidates = candidates[candidates["predicted_surplus"] >= 0].copy()
+        
+        # 2. HITUNG 3 PILAR REKOMENDASI
+        # Pilar 1: Hybrid Similarity (50%)
+        query_vector = build_query_hybrid_vector(req)
+        feature_rows = candidates["feature_row"].astype(int).values
+        hybrid_sim = cosine_similarity(query_vector.reshape(1, -1), hybrid_features[feature_rows]).reshape(-1)
+        hybrid_sim = (hybrid_sim + 1.0) / 2.0
+        
+        # Pilar 2: NCF Score (30%)
+        ncf_scores = compute_ncf_scores(candidates, req)
+        
+        # Pilar 3: Surplus Boost (20%)
+        surplus_boost = normalize_01(candidates["predicted_surplus"].values)
+        
+        # 3. KALKULASI SKOR AKHIR
+        hybrid_weight, ncf_weight, surplus_weight = 0.50, 0.30, 0.20
+        candidates["final_score"] = (hybrid_weight * hybrid_sim + ncf_weight * ncf_scores + surplus_weight * surplus_boost)
+        
+        output_cols = ["menu_item_name", "restaurant_type", "meal_type", "actual_selling_price", "predicted_surplus", "final_score"]
+        final_recs = candidates.sort_values("final_score", ascending=False)[output_cols].head(req.top_k).reset_index(drop=True)
+        
+        # 4. TEKS PROMO STATIS
+        if not final_recs.empty:
+            top_menu = final_recs.iloc[0]["menu_item_name"]
+            sisa_porsi = int(final_recs.iloc[0]["predicted_surplus"])
+            
+            promo_text = f"Jangan lewatkan! Menu {top_menu} tinggal tersisa {sisa_porsi} porsi lagi. Pesan sekarang di KeduaKali!"
+        else:
+            promo_text = "Menu habis! Cek aplikasi besok ya."
+
+        return {
+            "status": "success",
+            "message": "Rekomendasi menu surplus berhasil dibuat.",
+            "promo_text": promo_text,
+            "recommendations": final_recs.to_dict(orient="records")
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
