@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/public/logo1.png" alt="KeduaKali Logo" width="120" height="120" />
+<img src="frontend/src/public/logo1.png" alt="KeduaKali Logo" width="120" height="120" />
 
 # KeduaKali 🌱
 
