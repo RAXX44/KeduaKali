@@ -43,7 +43,7 @@ Di balik angka itu, ada restoran dan katering yang kehilangan pendapatan setiap 
 
 ---
 
-## 🖼️ Screenshot Produk
+## 🖼️ Screenshot Aplikasi
 
 <table>
   <tr>
