@@ -27,11 +27,9 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 // Cek apakah kode berjalan di Vercel atau di komputer lokal
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server is running locally on port ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 // 👇 INI WAJIB DITAMBAHKAN AGAR VERCEL BISA MEMBACA EXPRESS-MU
 module.exports = app;

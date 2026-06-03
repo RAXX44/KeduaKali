@@ -3,8 +3,9 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import {
   LayoutDashboard, Sparkles, Store, Package, Receipt,
-  LineChart, Settings, LogOut, Bell, Menu, X, Leaf, UserCheck, Users
+  LineChart, Settings, LogOut, Bell, Menu, X, UserCheck, Users
 } from 'lucide-react';
+import logo1 from '../../public/logo1.png';
 
 // 💡 KONFIGURASI MENU BAWAAN:
 // adminOnly: true -> HANYA SUPERADMIN
@@ -55,9 +56,14 @@ export default function AdminLayout({ children, title }) {
       <aside className={`w-64 bg-[#111827] border-r border-gray-800 flex flex-col fixed h-full z-40 shadow-2xl transition-transform duration-300 ease-in-out ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="h-20 px-6 flex items-center justify-between border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Leaf size={20} className="text-white" />
-            </div>
+          <div className="w-10 h-10 rounded-xl shadow-lg shadow-emerald-500/20 overflow-hidden bg-[#037841] flex items-center justify-center">
+  {/* 💡 NOTE: Ganti #037841 dengan kode warna hijau logomu agar tidak belang */}
+  <img 
+    src={logo1} 
+    alt="Logo KeduaKali" 
+    className="w-full h-full object-contain p-0.5" 
+  />
+</div>
             <div>
               <div className="text-white font-black tracking-wide text-lg leading-tight">KeduaKali</div>
               {/* Badge khusus untuk Mitra */}

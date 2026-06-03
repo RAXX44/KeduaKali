@@ -6,6 +6,7 @@ import {
   ArrowLeft, ShoppingCart, Store, X,
   ArrowUpDown, ImageOff, Recycle, Package, Filter
 } from 'lucide-react';
+import logoKeduaKali from '../public/logo2.png';
 
 const FILTERS = [
   'Semua',
@@ -280,10 +281,15 @@ export default function Katalog() {
             </button>
 
             <div className="hidden md:flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg relative overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute inset-0 bg-emerald-50 opacity-50"></div>
-                <Recycle size={22} strokeWidth={2.5} className="text-emerald-600 relative z-10" />
+              {/* === INI BAGIAN LOGO YANG SUDAH DIGANTI === */}
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden group-hover:scale-105 transition-transform">
+              <img 
+                  src={logoKeduaKali} 
+                  alt="Logo KeduaKali" 
+                  className="w-full h-full object-contain p-0.5" 
+                />
               </div>
+              {/* ========================================= */}
               <span className="text-xl font-black text-white tracking-wide">KeduaKali</span>
             </div>
 
@@ -379,8 +385,9 @@ export default function Katalog() {
             ))}
           </div>
 
-{/* Action Filters (Status Buka & Sortir) */}
-<div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto flex-wrap flex-shrink-0">            {/* Filter Status Buka/Tutup */}
+          {/* Action Filters (Status Buka & Sortir) */}
+          <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto flex-wrap flex-shrink-0">            
+            {/* Filter Status Buka/Tutup */}
             <div className="flex bg-gray-100 p-1 rounded-full border border-gray-200 flex-shrink-0 pointer-events-auto">
               <button
                 onClick={() => setStatusFilter('Semua')}
