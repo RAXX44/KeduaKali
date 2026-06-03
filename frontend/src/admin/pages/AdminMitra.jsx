@@ -81,12 +81,15 @@ export default function AdminMitra() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/users/register-mitra`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      const data = await res.json();
+    const token = adminToken || localStorage.getItem('kk_token');
+    const res = await fetch(`${API_URL}/users/register-mitra`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(form)
+    });
 
       if (res.ok) {
         setFormSuccess(`Kredensial mitra ${form.name} berhasil diotorisasi!`);
