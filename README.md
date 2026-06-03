@@ -2,7 +2,7 @@
 
 <img src="frontend/src/public/logo1.png" alt="KeduaKali Logo" width="120" height="120" />
 
-# KeduaKali 🌱
+# KeduaKali 
 
 ### *Platform Cerdas Penyelamat Makanan Leftover*
 
