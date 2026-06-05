@@ -1,7 +1,17 @@
 const pool = require('../config/db');
 
-// Fungsi untuk membuat transaksi baru (Checkout)
-const createTransaction = async (user_id, product_id, total_harga, quantity = 1) => {
+// ──────────────────────────────────────────────────────────────
+// Buat transaksi baru (Checkout)
+// ✅ Sekarang menerima payment_method & shipping_address
+// ──────────────────────────────────────────────────────────────
+const createTransaction = async (
+    user_id,
+    product_id,
+    total_harga,
+    quantity = 1,
+    payment_method = null,
+    shipping_address = null
+) => {
     // Cek stok
     const stockCheck = await pool.query(
         'SELECT stok FROM products WHERE id = $1',
@@ -11,12 +21,14 @@ const createTransaction = async (user_id, product_id, total_harga, quantity = 1)
     if (stockCheck.rows.length === 0) throw new Error('Produk tidak ditemukan');
     if (stockCheck.rows[0].stok < quantity) throw new Error('Stok produk tidak cukup');
 
-    // Buat transaksi (💡 UBAH DI SINI: Tambahkan quantity dan $4)
+    // ✅ Simpan payment_method & shipping_address ke DB
     const result = await pool.query(`
-        INSERT INTO transactions (user_id, product_id, total_harga, quantity, status)
-        VALUES ($1, $2, $3, $4, 'Sedang Diproses')
+        INSERT INTO transactions
+            (user_id, product_id, total_harga, quantity, status, payment_method, shipping_address)
+        VALUES
+            ($1, $2, $3, $4, 'Sedang Diproses', $5, $6)
         RETURNING *;
-    `, [user_id, product_id, total_harga, quantity]);
+    `, [user_id, product_id, total_harga, quantity, payment_method, shipping_address]);
 
     // Kurangi stok sesuai quantity
     await pool.query(
@@ -27,9 +39,11 @@ const createTransaction = async (user_id, product_id, total_harga, quantity = 1)
     return result.rows[0];
 };
 
-// Fungsi untuk melihat riwayat belanja user
+// ──────────────────────────────────────────────────────────────
+// Riwayat transaksi milik user (halaman Pesanan.jsx)
+// ✅ Sekarang ikut SELECT payment_method & shipping_address
+// ──────────────────────────────────────────────────────────────
 const getTransactionsByUser = async (user_id) => {
-    // 💡 UBAH DI SINI: Tambahkan t.quantity
     const query = `
         SELECT
             t.id,
@@ -38,11 +52,13 @@ const getTransactionsByUser = async (user_id) => {
             t.total_harga,
             t.quantity,
             t.status,
+            t.payment_method,
+            t.shipping_address,
             t.created_at,
             p.nama_produk,
+            p.gambar_produk,
             s.nama_toko,
-            s.waktu_tutup,
-            p.gambar_produk
+            s.waktu_tutup
         FROM transactions t
         INNER JOIN products p ON t.product_id = p.id
         LEFT JOIN stores s ON p.store_id = s.id
@@ -53,8 +69,11 @@ const getTransactionsByUser = async (user_id) => {
     return result.rows;
 };
 
+// ──────────────────────────────────────────────────────────────
+// Semua transaksi (AdminPesanan.jsx — superadmin & mitra)
+// ✅ Sekarang ikut SELECT payment_method, store_id & nama_toko
+// ──────────────────────────────────────────────────────────────
 const getAllTransactionsData = async () => {
-    // 💡 UBAH DI SINI: Tambahkan t.quantity
     const query = `
         SELECT
             t.id,
@@ -63,29 +82,39 @@ const getAllTransactionsData = async () => {
             t.total_harga,
             t.quantity,
             t.status,
+            t.payment_method,
+            t.shipping_address,
             t.created_at,
             p.nama_produk,
+            p.store_id,
+            s.nama_toko,
             u.name AS nama_user
         FROM transactions t
         INNER JOIN products p ON t.product_id = p.id
         INNER JOIN users u ON t.user_id = u.id
+        LEFT JOIN stores s ON p.store_id = s.id
         ORDER BY t.id DESC;
     `;
     const result = await pool.query(query);
     return result.rows;
 };
 
-// Fungsi untuk mengubah status transaksi (Admin)
+// ──────────────────────────────────────────────────────────────
+// Update status transaksi (Admin)
+// ──────────────────────────────────────────────────────────────
 const updateTransactionStatus = async (id, status) => {
-    const query = `
+    const result = await pool.query(`
         UPDATE transactions
         SET status = $1
         WHERE id = $2
         RETURNING *;
-    `;
-    const values = [status, id];
-    const result = await pool.query(query, values);
+    `, [status, id]);
     return result.rows[0];
 };
 
-module.exports = { createTransaction, getTransactionsByUser, getAllTransactionsData, updateTransactionStatus };
+module.exports = {
+    createTransaction,
+    getTransactionsByUser,
+    getAllTransactionsData,
+    updateTransactionStatus,
+};

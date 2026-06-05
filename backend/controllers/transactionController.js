@@ -6,16 +6,27 @@ const {
   updateTransactionStatus
 } = require('../models/transactionModel');
 
+// ──────────────────────────────────────────────────────────────
+// POST /api/transactions
+// ✅ Sekarang payment_method & shipping_address ikut disimpan
+// ──────────────────────────────────────────────────────────────
 const checkout = async (req, res) => {
   try {
-    const { product_id, total_harga, quantity } = req.body;
+    const {
+      product_id,
+      total_harga,
+      quantity,
+      payment_method   = null,  // ✅ BARU
+      shipping_address = null,  // ✅ BARU
+    } = req.body;
+
     const user_id = req.user.id;
 
     if (!product_id || total_harga === undefined) {
       return res.status(400).json({ message: 'Product ID dan Total Harga wajib diisi!' });
     }
 
-    const qty = Number(quantity) || 1;
+    const qty        = Number(quantity) || 1;
     const hargaFinal = Number(total_harga);
 
     if (qty <= 0) {
@@ -25,12 +36,20 @@ const checkout = async (req, res) => {
       return res.status(400).json({ message: 'Total harga tidak valid!' });
     }
 
-    const newTransaction = await createTransaction(user_id, product_id, hargaFinal, qty);
+    // ✅ Teruskan payment_method & shipping_address ke model
+    const newTransaction = await createTransaction(
+      user_id,
+      product_id,
+      hargaFinal,
+      qty,
+      payment_method,
+      shipping_address,
+    );
 
     res.status(201).json({
-      status: 'success',
+      status:  'success',
       message: 'Yeay! Checkout makanan sisa berhasil.',
-      data: newTransaction
+      data:    newTransaction,
     });
   } catch (error) {
     console.error('Error saat checkout:', error);
@@ -44,9 +63,14 @@ const checkout = async (req, res) => {
   }
 };
 
+// ──────────────────────────────────────────────────────────────
+// GET /api/transactions/history
+// Riwayat pesanan milik user yang sedang login
+// ✅ Sekarang ikut return payment_method
+// ──────────────────────────────────────────────────────────────
 const myTransactions = async (req, res) => {
   try {
-    const user_id = req.user.id;
+    const user_id      = req.user.id;
     const transactions = await getTransactionsByUser(user_id);
     res.status(200).json({ status: 'success', data: transactions });
   } catch (error) {
@@ -55,43 +79,53 @@ const myTransactions = async (req, res) => {
   }
 };
 
+// ──────────────────────────────────────────────────────────────
+// GET /api/transactions
+// Superadmin: semua transaksi | Mitra: hanya toko mereka
+// ✅ Sekarang ikut SELECT payment_method di kedua query
+// ──────────────────────────────────────────────────────────────
 const getAllTransactions = async (req, res) => {
   try {
-    const { id: userId, role, store_id } = req.user; // ✅ Ambil dari JWT
+    const { role, store_id } = req.user; // dari JWT
 
     let query;
     let params = [];
 
     if (role === 'superadmin') {
-      // ✅ Superadmin: lihat SEMUA transaksi
+      // Superadmin: lihat SEMUA transaksi
       query = `
         SELECT
-          t.id, t.user_id, t.product_id, t.total_harga, t.quantity,
-          t.status, t.created_at,
-          u.name AS nama_user,
+          t.id, t.user_id, t.product_id,
+          t.total_harga, t.quantity,
+          t.status, t.payment_method, t.shipping_address,
+          t.created_at,
+          u.name    AS nama_user,
           p.nama_produk, p.gambar_produk,
-          s.id AS store_id, s.nama_toko, s.waktu_tutup
+          s.id      AS store_id,
+          s.nama_toko, s.waktu_tutup
         FROM transactions t
-        JOIN users u ON t.user_id = u.id
+        JOIN users u    ON t.user_id    = u.id
         JOIN products p ON t.product_id = p.id
         LEFT JOIN stores s ON p.store_id = s.id
         ORDER BY t.created_at DESC
       `;
     } else {
-      // ✅ Mitra: hanya lihat transaksi toko MEREKA
-      // store_id diambil dari JWT (disimpan saat login)
+      // Mitra: hanya transaksi toko mereka (store_id dari JWT)
       if (!store_id) {
         return res.status(200).json({ status: 'success', data: [] });
       }
       query = `
         SELECT
-          t.id, t.user_id, t.product_id, t.total_harga, t.quantity,
-          t.status, t.created_at,
-          u.name AS nama_user,
+          t.id, t.user_id, t.product_id,
+          t.total_harga, t.quantity,
+          t.status, t.payment_method, t.shipping_address,
+          t.created_at,
+          u.name    AS nama_user,
           p.nama_produk, p.gambar_produk,
-          s.id AS store_id, s.nama_toko, s.waktu_tutup
+          s.id      AS store_id,
+          s.nama_toko, s.waktu_tutup
         FROM transactions t
-        JOIN users u ON t.user_id = u.id
+        JOIN users u    ON t.user_id    = u.id
         JOIN products p ON t.product_id = p.id
         LEFT JOIN stores s ON p.store_id = s.id
         WHERE s.id = $1
@@ -108,17 +142,21 @@ const getAllTransactions = async (req, res) => {
   }
 };
 
+// ──────────────────────────────────────────────────────────────
+// PUT /api/transactions/:id/status
+// Mitra hanya bisa ubah status toko mereka
+// ──────────────────────────────────────────────────────────────
 const changeTransactionStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
+    const { id }             = req.params;
+    const { status }         = req.body;
     const { role, store_id } = req.user;
 
     if (!status) {
       return res.status(400).json({ message: 'Status pesanan wajib diisi!' });
     }
 
-    // ✅ Mitra hanya bisa ubah status transaksi toko mereka
+    // Mitra hanya bisa ubah status transaksi toko mereka
     if (role === 'mitra' && store_id) {
       const check = await pool.query(
         `SELECT t.id FROM transactions t
@@ -137,9 +175,9 @@ const changeTransactionStatus = async (req, res) => {
     }
 
     res.status(200).json({
-      status: 'success',
+      status:  'success',
       message: `Status pesanan berhasil diubah menjadi ${status}`,
-      data: updatedTrx
+      data:    updatedTrx,
     });
   } catch (error) {
     console.error('Error saat update status transaksi:', error);

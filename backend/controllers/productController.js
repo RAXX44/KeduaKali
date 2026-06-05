@@ -34,14 +34,12 @@ const addProduct = async (req, res) => {
       return res.status(400).json({ message: 'Nama dan Harga wajib diisi!' });
     }
 
-    // ✅ Mitra: store_id otomatis dari JWT, tidak bisa pilih toko lain
     const finalStoreId = role === 'mitra' ? jwtStoreId : store_id;
 
     if (!finalStoreId) {
       return res.status(400).json({ message: 'Toko wajib diisi!' });
     }
 
-    // ✅ Mitra: pastikan store_id cocok dengan toko mereka
     if (role === 'mitra' && Number(store_id) !== Number(jwtStoreId)) {
       return res.status(403).json({ message: 'Akses ditolak! Hanya bisa tambah produk ke toko Anda.' });
     }
@@ -69,7 +67,6 @@ const editProduct = async (req, res) => {
     const { id } = req.params;
     const { role, store_id: jwtStoreId } = req.user;
 
-    // ✅ Mitra: cek produk ini milik toko mereka
     if (role === 'mitra') {
       const check = await pool.query(
         'SELECT id FROM products WHERE id = $1 AND store_id = $2',
@@ -90,7 +87,6 @@ const editProduct = async (req, res) => {
       diskon = Math.round((1 - (price / original_price)) * 100);
     }
 
-    // ✅ Mitra tidak bisa pindah produk ke toko lain
     const finalStoreId = role === 'mitra' ? jwtStoreId : store_id;
 
     const updated = await updateProduct(
@@ -112,7 +108,6 @@ const removeProduct = async (req, res) => {
     const { id } = req.params;
     const { role, store_id: jwtStoreId } = req.user;
 
-    // ✅ Mitra: cek produk ini milik toko mereka
     if (role === 'mitra') {
       const check = await pool.query(
         'SELECT id FROM products WHERE id = $1 AND store_id = $2',
@@ -137,7 +132,6 @@ const applyAIDiscount = async (req, res) => {
     const { role, store_id: jwtStoreId } = req.user;
     const { predicted_stock, discount_percentage } = req.body;
 
-    // ✅ Mitra: cek produk ini milik toko mereka
     if (role === 'mitra') {
       const check = await pool.query(
         'SELECT id FROM products WHERE id = $1 AND store_id = $2',
