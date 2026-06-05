@@ -13,7 +13,7 @@ import {
 const KONDISI_CONFIG = {
   'leftover': { label: 'Sisa Etalase', style: 'bg-amber-100 text-amber-700 border-amber-200' },
   'imperfect': { label: 'Kurang Sempurna', style: 'bg-sky-100 text-sky-700 border-sky-200' },
-  'near-expired': { label: 'Mendekati Kedaluwarsa', style: 'bg-orange-100 text-orange-700 border-orange-200' },
+  'closing-stock': { label: 'Mendekati Jam Tutup Toko', style: 'bg-orange-100 text-orange-700 border-orange-200' },
   'canceled': { label: 'Pesanan Batal', style: 'bg-purple-100 text-purple-700 border-purple-200' },
 };
 
@@ -325,7 +325,10 @@ export default function DetailProduk() {
 
         {/* ── REKOMENDASI AI ── */}
         <div className="mt-8 px-2 md:px-0">
-          <RekomendasiAI productId={product.id} title="Kurasi AI: Rekomendasi Terkait ✨" />
+          <RekomendasiAI 
+          productId={product.id} 
+          title="Kurasi AI: Rekomendasi Terkait ✨" 
+        />
         </div>
       </div>
 

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { authApi } from '../../services/api';
 import { Mail, Lock, Eye, EyeOff, ShieldAlert } from 'lucide-react';
+// ── IMPORT LOGO BERSAMA ──
+import logo1 from '../../public/logo1.png';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -45,15 +47,24 @@ export default function AdminLogin() {
   };
 
   return (
+    /* ✅ KEMBALI KE ASLI: Background gelap asli Workspace */
     <div className="min-h-screen bg-[#0B0E14] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
+      {/* ✅ KEMBALI KE ASLI: Card gelap transparan */}
       <div className="w-full max-w-md bg-[#11141A]/80 backdrop-blur-xl border border-gray-800 rounded-[2rem] p-8 md:p-10 shadow-2xl relative z-10 animate-in fade-in zoom-in-95 duration-500">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-[0_0_20px_rgba(16,185,129,0.3)] mb-4 animate-bounce">
-            🌱
+          
+          {/* ✅ REVISI: Menggunakan warna background gradien yang sebelumnya dengan logo1 */}
+          <div className="w-16 h-16 bg-[#047857] rounded-2xl mx-auto flex items-center justify-center shadow-[0_8px_25px_rgba(4,120,87,0.4)] mb-4 border border-emerald-500/30 p-1">
+            <img 
+              src={logo1} 
+              alt="Logo KeduaKali" 
+              className="w-full h-full object-contain" 
+            />
           </div>
+
           <h1 className="text-2xl font-black text-white tracking-tight mb-1">KeduaKali Workspace</h1>
           <p className="text-sm text-gray-500 font-medium">Platform Operasional & Prediksi AI</p>
         </div>

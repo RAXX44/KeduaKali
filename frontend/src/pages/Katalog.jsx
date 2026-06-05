@@ -12,12 +12,9 @@ const FILTERS = [
   'Semua',
   'Restoran & F&B',
   'Bakery & Pastry',
-  'Kafe & Roastery',
-  'Supermarket & Ritel',
-  'Hotel & Buffet',
-  'Pasar Tradisional',
-  'Grosir Pangan',
-  'Fashion & Gaya Hidup',
+  'Kafe & Minuman',
+  'Katering & Buffet',
+  'Jajanan & Camilan',
   'Lainnya'
 ];
 
@@ -284,10 +281,10 @@ export default function Katalog() {
               {/* === INI BAGIAN LOGO YANG SUDAH DIGANTI === */}
               <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg overflow-hidden group-hover:scale-105 transition-transform">
               <img 
-                  src={logoKeduaKali} 
-                  alt="Logo KeduaKali" 
-                  className="w-full h-full object-contain p-0.5" 
-                />
+                src={logoKeduaKali} 
+                alt="Logo KeduaKali" 
+                className="w-full h-full object-contain p-0.5" 
+              />
               </div>
               {/* ========================================= */}
               <span className="text-xl font-black text-white tracking-wide">KeduaKali</span>
@@ -321,13 +318,13 @@ export default function Katalog() {
           <div className="md:max-w-2xl text-left">
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-md rounded-full px-3 py-1.5 mb-4 shadow-sm">
               <Store size={14} strokeWidth={2.5} className="text-emerald-300" />
-              <span className="text-[10px] md:text-xs font-bold text-emerald-50 tracking-wider uppercase">Direktori Penyelamat</span>
+              <span className="text-[10px] md:text-xs font-bold text-emerald-50 tracking-wider uppercase">Penyelamat Makanan</span>
             </div>
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight mb-4 drop-shadow-md">
-              Jelajahi Mitra <br className="hidden md:block" />Penyelamat Bumi
+              Jelajahi Mitra <br className="hidden md:block" />Penyelamat Kuliner
             </h1>
             <p className="text-xs md:text-base text-emerald-50/90 font-medium leading-relaxed max-w-xl">
-              Temukan berbagai restoran, kafe, hingga toko ritel yang menyediakan produk surplus dan barang imperfect berkualitas dengan harga miring.
+              Selamatkan kelebihan makanan lezat dari restoran, kafe, hingga toko roti favoritmu sebelum hari berakhir. Rasakan kualitas terbaik dengan harga jauh lebih hemat!
             </p>
           </div>
         </div>

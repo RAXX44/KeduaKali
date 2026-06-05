@@ -36,9 +36,9 @@ export default function Keranjang() {
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
             <div>
-              <h1 className="text-lg md:text-xl font-black text-gray-900 tracking-tight leading-none">Tas Penyelamatan</h1>
+              <h1 className="text-lg md:text-xl font-black text-gray-900 tracking-tight leading-none">Keranjang</h1>
               <p className="text-[10px] md:text-xs font-bold text-emerald-600 uppercase tracking-wider mt-0.5">
-                {totalItems > 0 ? `${totalItems} Porsi Siap Diambil` : 'Tas Masih Kosong'}
+                {totalItems > 0 ? `${totalItems} Porsi Siap Diambil` : 'Keranjang Masih Kosong'}
               </p>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function Keranjang() {
                 }
               }}
               className="w-10 h-10 bg-red-50 hover:bg-red-100 text-red-500 rounded-full flex items-center justify-center transition-colors shadow-sm flex-shrink-0"
-              title="Kosongkan Tas"
+              title="Kosongkan Keranjang"
             >
               <Trash2 size={18} strokeWidth={2} />
             </button>
@@ -68,7 +68,7 @@ export default function Keranjang() {
             <div className="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-inner border border-gray-100">
               <ShoppingBag size={40} className="text-gray-300" strokeWidth={1.5} />
             </div>
-            <h2 className="text-xl md:text-2xl font-black text-gray-800 mb-2 tracking-tight">Tasmu Masih Kosong</h2>
+            <h2 className="text-xl md:text-2xl font-black text-gray-800 mb-2 tracking-tight">Keranjangmu Masih Kosong</h2>
             <p className="text-sm md:text-base text-gray-500 mb-8 max-w-sm px-4 leading-relaxed">
               Porsi makanan lezat di luar sana sedang menunggu pahlawan untuk menyelamatkannya!
             </p>

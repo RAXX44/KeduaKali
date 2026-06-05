@@ -12,12 +12,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const KATEGORI_MITRA = [
   'Restoran & F&B',
   'Bakery & Pastry',
-  'Kafe & Roastery',
-  'Supermarket & Ritel',
-  'Hotel & Buffet',
-  'Pasar Tradisional',
-  'Grosir Pangan',
-  'Fashion & Gaya Hidup',
+  'Kafe & Minuman',
+  'Katering & Buffet',
+  'Jajanan & Camilan',
   'Lainnya'
 ];
 
@@ -33,6 +30,10 @@ export default function AdminToko() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [formError, setFormError] = useState('');
+
+  // 🛠️ STATE BARU UNTUK MODAL HAPUS KUSTOM
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [storeToDelete, setStoreToDelete] = useState(null);
 
   const [form, setForm] = useState({
     nama_toko: '', kategori: 'Restoran & F&B', deskripsi: '', alamat: '', kontak_toko: '',
@@ -120,17 +121,22 @@ export default function AdminToko() {
     }
   };
 
-  const handleDelete = async (id) => {
-    // 🔒 PROTEKSI EKSTRA: Pastikan fungsi hapus hanya bisa dipanggil Superadmin
-    if (!isSuperAdmin) return;
+  // 🛠️ FUNGSI HAPUS YANG SUDAH DI-REFACTOR (TANPA WINDOW.CONFIRM)
+  const handleDelete = async () => {
+    if (!isSuperAdmin || !storeToDelete) return;
 
-    if (window.confirm('Peringatan: Apakah Anda yakin ingin memutus kemitraan dan menghapus toko ini secara permanen?')) {
+    try {
       const token = adminToken || localStorage.getItem('kk_token');
-      await fetch(`${API_URL}/stores/${id}`, {
+      await fetch(`${API_URL}/stores/${storeToDelete}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       fetchStores();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setShowDeleteModal(false);
+      setStoreToDelete(null);
     }
   };
 
@@ -244,9 +250,15 @@ export default function AdminToko() {
                         <div className="flex gap-2">
                           <button onClick={() => openEdit(t)} title="Edit Data" className="p-2 text-gray-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 rounded-lg border border-gray-200 transition-colors shadow-sm"><Edit size={16} /></button>
 
-                          {/* 🔒 HANYA SUPERADMIN YANG BISA HAPUS TOKO */}
+                          {/* 🔒 TRIGGER UNTUK MODAL HAPUS KUSTOM */}
                           {isSuperAdmin && (
-                            <button onClick={() => handleDelete(t.id)} title="Hapus Permanen" className="p-2 text-gray-500 hover:text-red-600 bg-white hover:bg-red-50 rounded-lg border border-gray-200 transition-colors shadow-sm"><Trash2 size={16} /></button>
+                            <button 
+                              onClick={() => { setStoreToDelete(t.id); setShowDeleteModal(true); }} 
+                              title="Hapus Permanen" 
+                              className="p-2 text-gray-500 hover:text-red-600 bg-white hover:bg-red-50 rounded-lg border border-gray-200 transition-colors shadow-sm"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           )}
                         </div>
                       </td>
@@ -356,6 +368,40 @@ export default function AdminToko() {
           </div>
         </div>
       )}
+
+      {/* 🔴 MODAL BARU: KONFIRMASI HAPUS PERMANEN (CUSTOM) */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-gray-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-200 shadow-sm">
+              <Trash2 size={22} />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-gray-900 tracking-tight">Putus Kemitraan Toko?</h3>
+              <p className="text-xs text-gray-500 leading-relaxed px-2">
+                Peringatan: Apakah Anda yakin ingin memutus kemitraan dan menghapus toko ini secara permanen dari sistem? Tindakan ini tidak bisa dibatalkan.
+              </p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => { setShowDeleteModal(false); setStoreToDelete(null); }}
+                className="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-red-700 transition-all active:scale-95 shadow-md"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </AdminLayout>
   );
 }

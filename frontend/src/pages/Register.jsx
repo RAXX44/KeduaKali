@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Leaf, User, Mail, Lock, ShieldCheck,
+  User, Mail, Lock, ShieldCheck,
   Eye, EyeOff, AlertCircle, Loader2, ArrowLeft
 } from 'lucide-react';
+// ── IMPORT LOGO BERSAMA ──
+import logo1 from '../public/logo1.png';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -65,14 +67,17 @@ export default function Register() {
 
       {/* ── HERO HEADER ── */}
       <div className="relative bg-gradient-to-br from-[#064E3B] via-[#047857] to-[#10B981] pt-20 pb-28 px-6 text-center text-white overflow-hidden">
-        {/* Dekorasi Latar Glowing */}
         <div className="absolute top-[-20%] left-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-48 h-48 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col items-center">
-          {/* Efek Floating pada Logo */}
-          <div className="w-16 h-16 bg-white/20 backdrop-blur-md border border-white/30 rounded-[1.25rem] flex items-center justify-center shadow-inner mb-4 animate-[bounce_3s_ease-in-out_infinite]">
-            <Leaf size={32} className="text-white" strokeWidth={2} />
+          {/* ✅ FIX: Menggunakan logo1 dengan wrapper persis AdminLayout */}
+          <div className="w-16 h-16 bg-[#037841] rounded-[1.5rem] flex items-center justify-center shadow-lg shadow-emerald-900/30 overflow-hidden mb-4 animate-[bounce_3s_ease-in-out_infinite] border border-emerald-500/30">
+            <img 
+              src={logo1} 
+              alt="Logo KeduaKali" 
+              className="w-full h-full object-contain p-0.1" 
+            />
           </div>
           <h1 className="text-3xl font-black tracking-tight mb-1">Bergabung Bersama</h1>
           <p className="text-sm text-emerald-100 font-medium max-w-xs leading-relaxed">
@@ -97,7 +102,7 @@ export default function Register() {
             </div>
           )}
 
-          {/* ── SSO REGISTER (Wow Factor) ── */}
+          {/* ── SSO REGISTER ── */}
           <button
             type="button"
             onClick={handleGoogleRegister}
@@ -126,7 +131,6 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-
             {/* Input Nama */}
             <div>
               <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Nama Lengkap</label>

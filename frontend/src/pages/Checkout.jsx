@@ -11,9 +11,27 @@ import {
 } from 'lucide-react';
 
 const PAYMENT_OPTIONS = [
-  { id: 'ewallet', icon: <Wallet size={24} className="text-emerald-600" />, label: 'QRIS / E-Wallet', sub: 'GoPay, OVO, Dana, ShopeePay' },
-  { id: 'bank', icon: <Building size={24} className="text-emerald-600" />, label: 'Virtual Account', sub: 'BCA, Mandiri, BNI, BRI' },
+  {
+    id: 'ewallet',
+    icon: <Wallet size={24} className="text-emerald-600" />,
+    label: 'QRIS / E-Wallet',
+    sub: 'GoPay, OVO, Dana, ShopeePay'
+  },
+  {
+    id: 'bank',
+    icon: <Building size={24} className="text-emerald-600" />,
+    label: 'Virtual Account',
+    sub: 'BCA, Mandiri, BNI, BRI'
+  },
 ];
+
+// Fungsi invoice sinkron dengan AdminPesanan & Pesanan
+const generatePremiumInvoice = (id, dateString) => {
+  if (!dateString) return `INV-X999-0000`;
+  const timeHash = new Date(dateString).getTime().toString(36).toUpperCase().slice(-4);
+  const idHash   = (Number(id) * 8191).toString(36).toUpperCase().padStart(4, '0');
+  return `INV-${timeHash}-${idHash}`;
+};
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -21,20 +39,17 @@ export default function Checkout() {
   const { authFetch } = useAuth();
 
   const [selectedPayment, setSelectedPayment] = useState('ewallet');
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({
-    nama: '',
-    telepon: '',
-  });
+  const [loading, setLoading]                 = useState(false);
+  const [form, setForm]                       = useState({ nama: '', telepon: '' });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-  // Mengambil info toko dari item pertama di keranjang
-  const namaToko = cart.length > 0 ? cart[0].nama_toko : 'Mitra KeduaKali';
-  const batasWaktu = cart.length > 0 && cart[0].waktu_tutup ? cart[0].waktu_tutup.substring(0, 5) : '22:00';
+  const namaToko   = cart.length > 0 ? cart[0].nama_toko : 'Mitra KeduaKali';
+  const batasWaktu = cart.length > 0 && cart[0].waktu_tutup
+    ? cart[0].waktu_tutup.substring(0, 5)
+    : '22:00';
 
   const handleSubmit = async () => {
-    if (!form.nama || !form.telepon) {
+    // Validasi input wajib (tanpa validasi format nomor sesuai permintaan)
+    if (!form.nama.trim() || !form.telepon.trim()) {
       alert('Mohon lengkapi identitas pengambilan terlebih dahulu.');
       return;
     }
@@ -47,33 +62,36 @@ export default function Checkout() {
 
     setLoading(true);
 
-   try {
-      // HAPUS blok const res = await authFetch(...) dan ganti dengan INI:
-
+    try {
       const checkoutData = {
-          product_id: cart[0].id,
-          total_harga: total,
-          quantity: cart[0].qty || 1,
-          payment_method: selectedPayment,
-          shipping_address: 'Ambil di Toko (Self-Pickup)',
-          items: cart
+        product_id:       cart[0].id,
+        total_harga:      total,
+        quantity:         cart[0].qty || 1,
+        payment_method:   selectedPayment,   // Dikirim ke backend
+        shipping_address: 'Ambil di Toko (Self-Pickup)',
+        nama_pengambil:   form.nama.trim(),
+        telepon:          form.telepon.trim(),
+        items:            cart
       };
 
-      // Tembak menggunakan jalan tol api.js
       const data = await transactionApi.checkout(checkoutData);
 
-      // Langsung pindah halaman
+      // Buat invoice ID yang konsisten dengan halaman Pesanan & AdminPesanan
+      const rawId        = data.data?.id || data.transaction_id || Date.now();
+      const createdAt    = data.data?.created_at || new Date().toISOString();
+      const premiumInvoice = generatePremiumInvoice(rawId, createdAt);
+
       navigate('/success', {
         state: {
-          payment: selectedPayment,
-          total: total,
-          invoiceId: data.data?.id || data.transaction_id || Date.now()
+          payment:   selectedPayment,
+          total:     total,
+          invoiceId: premiumInvoice,  // Format konsisten di seluruh halaman
         }
       });
 
     } catch (error) {
-      console.error("Error Checkout:", error);
-      alert(error.message || "Transaksi gagal diproses sistem");
+      console.error('Error Checkout:', error);
+      alert(error.message || 'Transaksi gagal diproses sistem');
     } finally {
       setLoading(false);
     }
@@ -102,7 +120,7 @@ export default function Checkout() {
 
       <div className="max-w-3xl mx-auto w-full px-4 md:px-0 mt-6 space-y-6">
 
-        {/* ── DETAIL PENGAMBILAN (SELF-PICKUP) ── */}
+        {/* ── DETAIL PENGAMBILAN ── */}
         <div className="bg-white rounded-[2rem] border border-emerald-100 p-5 md:p-8 shadow-[0_4px_20px_rgba(16,185,129,0.05)] relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[100px] -z-0"></div>
 
@@ -136,7 +154,7 @@ export default function Checkout() {
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm outline-none focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-gray-800 font-medium"
                   placeholder="Nama yang akan ditunjukkan ke kasir"
                   value={form.nama}
-                  onChange={(e) => setForm({ ...form, nama: e.target.value })}
+                  onChange={e => setForm({ ...form, nama: e.target.value })}
                 />
               </div>
             </div>
@@ -150,14 +168,14 @@ export default function Checkout() {
                   placeholder="0812-xxxx-xxxx"
                   type="tel"
                   value={form.telepon}
-                  onChange={(e) => setForm({ ...form, telepon: e.target.value })}
+                  onChange={e => setForm({ ...form, telepon: e.target.value })}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── RINGKASAN ITEM (Penting untuk Trust) ── */}
+        {/* ── RINGKASAN ITEM ── */}
         <div className="bg-white rounded-[2rem] border border-gray-100 p-5 md:p-8 shadow-[0_4px_20px_rgba(0,0,0,0.02)]">
           <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
             <ShoppingBag size={16} className="text-emerald-500" /> Rincian Porsi
@@ -183,7 +201,7 @@ export default function Checkout() {
           </h2>
 
           <div className="space-y-3">
-            {PAYMENT_OPTIONS.map((opt) => {
+            {PAYMENT_OPTIONS.map(opt => {
               const isSelected = selectedPayment === opt.id;
               return (
                 <button
@@ -198,21 +216,12 @@ export default function Checkout() {
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-white shadow-sm' : 'bg-gray-50'}`}>
                     {opt.icon}
                   </div>
-
                   <div className="flex-1">
-                    <div className={`text-sm font-bold ${isSelected ? 'text-emerald-900' : 'text-gray-900'}`}>
-                      {opt.label}
-                    </div>
-                    <div className="text-[11px] md:text-xs text-gray-500 font-medium mt-0.5">
-                      {opt.sub}
-                    </div>
+                    <div className={`text-sm font-bold ${isSelected ? 'text-emerald-900' : 'text-gray-900'}`}>{opt.label}</div>
+                    <div className="text-[11px] md:text-xs text-gray-500 font-medium mt-0.5">{opt.sub}</div>
                   </div>
-
                   <div className="flex-shrink-0">
-                    <CheckCircle2
-                      size={24}
-                      className={`transition-all ${isSelected ? 'text-emerald-500 scale-100 opacity-100' : 'text-gray-300 scale-90 opacity-0'}`}
-                    />
+                    <CheckCircle2 size={24} className={`transition-all ${isSelected ? 'text-emerald-500 scale-100 opacity-100' : 'text-gray-300 scale-90 opacity-0'}`} />
                   </div>
                 </button>
               );
@@ -220,9 +229,8 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* ── RINGKASAN TAGIHAN & CTA ── */}
+        {/* ── TOTAL TAGIHAN & CTA ── */}
         <div className="bg-white rounded-[2rem] border border-gray-100 p-6 md:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
-
           <div className="flex justify-between items-center py-5 border-b border-dashed border-gray-200 mb-6">
             <div>
               <span className="text-sm md:text-base font-bold text-gray-500 uppercase tracking-widest block">Total Tagihan</span>
@@ -230,28 +238,22 @@ export default function Checkout() {
                 <Sparkles size={12} /> Bebas Biaya Penanganan
               </span>
             </div>
-            <span className="text-3xl md:text-4xl font-black text-emerald-600 tracking-tight">
-              {formatRp(total)}
-            </span>
+            <span className="text-3xl md:text-4xl font-black text-emerald-600 tracking-tight">{formatRp(total)}</span>
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className={`w-full text-white rounded-2xl py-4 md:py-4 text-sm md:text-base font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${
+            className={`w-full text-white rounded-2xl py-4 text-sm md:text-base font-bold flex items-center justify-center gap-2 transition-all shadow-lg ${
               loading
                 ? 'bg-gray-400 cursor-not-allowed shadow-none'
                 : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 active:scale-[0.98] shadow-emerald-500/30'
             }`}
           >
             {loading ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Memproses Tiket...
-              </>
+              <><Loader2 size={18} className="animate-spin" /> Memproses Tiket...</>
             ) : (
-              <>
-                <ShieldCheck size={20} /> Konfirmasi & Bayar
-              </>
+              <><ShieldCheck size={20} /> Konfirmasi & Bayar</>
             )}
           </button>
 

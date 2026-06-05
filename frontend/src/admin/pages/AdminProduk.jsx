@@ -5,30 +5,29 @@ import { useAdminAuth } from '../../context/AdminAuthContext';
 import {
   Search, Edit, Trash2, Package, X, Clock,
   Plus, AlertCircle, Image as ImageIcon, Store,
-  AlertTriangle, TrendingDown, Tag
+  AlertTriangle, TrendingDown, Tag, ChevronUp, ChevronDown, ArrowUpDown
 } from 'lucide-react';
 
-// ✅ FIX: Kategori disamakan persis dengan DetailToko.jsx
 const KATEGORI_OPTIONS = [
   'Roti & Kue', 'Nasi & Lauk', 'Minuman',
-  'Sayur & Buah', 'Camilan', 'Bahan Baku', 'Lainnya'
+  'Sayur & Buah', 'Camilan', 'Lainnya'
 ];
 const KATEGORI_FILTER = ['Semua', ...KATEGORI_OPTIONS];
 
 const TYPE_CONFIG = {
   'leftover': { label: 'Sisa Etalase', style: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
   'imperfect': { label: 'Kurang Sempurna', style: 'bg-sky-50 text-sky-700 border-sky-200' },
-  'near-expired': { label: 'Mendekati Kedaluwarsa', style: 'bg-orange-50 text-orange-700 border-orange-200' },
+  'near-expired': { label: 'Mendekati Jam Tutup Toko', style: 'bg-orange-50 text-orange-700 border-orange-200' },
   'canceled': { label: 'Pesanan Batal', style: 'bg-purple-50 text-purple-700 border-purple-200' },
 };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function AdminProduk() {
-  const { adminToken, admin } = useAdminAuth(); // 💡 AMBIL DATA ADMIN
+  const { adminToken, admin } = useAdminAuth();
   const [produkList, setProdukList] = useState([]);
   const [tokoList, setTokoList] = useState([]);
-  const [myStore, setMyStore] = useState(null); // 💡 SIMPAN DATA TOKO MILIK MITRA
+  const [myStore, setMyStore] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [filter, setFilter] = useState('Semua');
@@ -36,6 +35,12 @@ export default function AdminProduk() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [formError, setFormError] = useState('');
+  
+  // State untuk Delete Modal Custom
+  const [deleteItem, setDeleteItem] = useState(null);
+
+  // State untuk Sorting
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const [form, setForm] = useState({
     storeId: '', name: '', category: KATEGORI_OPTIONS[0], type: 'leftover',
@@ -62,7 +67,6 @@ export default function AdminProduk() {
         activeStores = dataToko.data.filter(t => t.is_active);
         setTokoList(activeStores);
 
-        // 💡 CARI TOKO MILIK MITRA YANG SEDANG LOGIN
         if (!isSuperAdmin) {
           currentMitraStore = activeStores.find(t => t.mitra_user_id === admin?.id) || activeStores.find(t => t.id === admin?.store_id);
           setMyStore(currentMitraStore);
@@ -72,15 +76,13 @@ export default function AdminProduk() {
       if (dataProd.status === 'success') {
         let rawProducts = dataProd.data;
 
-        // 💡 FILTER DATA: Jika dia Mitra, potong datanya hanya untuk tokonya sendiri!
         if (!isSuperAdmin && currentMitraStore) {
           rawProducts = rawProducts.filter(p => p.store_id === currentMitraStore.id);
         } else if (!isSuperAdmin && !currentMitraStore) {
-          rawProducts = []; // Jika mitra belum di-assign toko, kosongkan
+          rawProducts = [];
         }
 
         setProdukList(rawProducts.map(p => {
-          // Fallback ke 'Lainnya' jika kategori dari DB tidak ada di opsi (Mencegah produk hilang)
           const validCategory = KATEGORI_OPTIONS.includes(p.kategori || p.category)
             ? (p.kategori || p.category)
             : 'Lainnya';
@@ -105,12 +107,32 @@ export default function AdminProduk() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [admin]); // Re-fetch jika admin berubah
+  useEffect(() => { fetchData(); }, [admin]);
 
-  const filtered = produkList.filter(p => {
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const processedProdukList = [...produkList].filter(p => {
     const matchCat = filter === 'Semua' || p.category === filter;
     const matchSearch = (p.name || '').toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
+  }).sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+
+    if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+    if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const totalStok = produkList.reduce((s, p) => s + p.stok, 0);
@@ -119,7 +141,6 @@ export default function AdminProduk() {
 
   const openAdd = () => {
     setEditItem(null); setFormError('');
-    // 💡 OTOMATIS KUNCI STORE_ID JIKA DIA MITRA
     setForm({
       storeId: !isSuperAdmin && myStore ? myStore.id : '',
       name: '', category: KATEGORI_OPTIONS[0], type: 'leftover',
@@ -169,18 +190,33 @@ export default function AdminProduk() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Hapus produk ini dari etalase?')) {
-      try {
-        const token = adminToken || localStorage.getItem('kk_token');
-        const res = await fetch(`${API_URL}/products/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) fetchData();
-      } catch (error) { console.error(error); }
+  const executeDelete = async () => {
+    if (!deleteItem) return;
+    try {
+      const token = adminToken || localStorage.getItem('kk_token');
+      const res = await fetch(`${API_URL}/products/${deleteItem.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchData();
+        setDeleteItem(null);
+      }
+    } catch (error) { 
+      console.error(error); 
     }
   };
+
+  // ✅ MEMISAHKAN INFO PRODUK DAN HARGA MENJADI SLOT TERPISAH
+  const TABLE_HEADERS = [
+    { label: 'Info Produk', key: 'name' },
+    { label: 'Harga', key: 'price' }, // Slot Filter & Tampilan Baru!
+    { label: 'Mitra / Toko', key: 'nama_toko' },
+    { label: 'Batas Aman', key: 'batas_konsumsi' },
+    { label: 'Stok', key: 'stok' },
+    { label: 'Kondisi', key: 'type' },
+    { label: 'Aksi', key: null }
+  ];
 
   return (
     <AdminLayout title="Kelola Katalog Produk">
@@ -241,23 +277,40 @@ export default function AdminProduk() {
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 border-b border-gray-200 select-none">
                 <tr>
-                  {['Info Produk', 'Mitra / Toko', 'Batas Aman', 'Stok', 'Kondisi', 'Aksi'].map(h =>
-                    <th key={h} className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  )}
+                  {TABLE_HEADERS.map((h, i) => (
+                    <th 
+                      key={i} 
+                      onClick={() => h.key && handleSort(h.key)}
+                      className={`px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap transition-colors ${h.key ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {h.label}
+                        {h.key && (
+                          <div className="text-gray-400">
+                            {sortConfig.key === h.key ? (
+                              sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-emerald-600" /> : <ChevronDown size={14} className="text-emerald-600" />
+                            ) : (
+                              <ArrowUpDown size={14} className="opacity-50 hover:opacity-100" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
-                  <tr><td colSpan="6" className="text-center py-16 text-gray-400 animate-pulse">Menyiapkan Etalase...</td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan="6" className="text-center py-16">
+                  <tr><td colSpan="7" className="text-center py-16 text-gray-400 animate-pulse">Menyiapkan Etalase...</td></tr>
+                ) : processedProdukList.length === 0 ? (
+                  <tr><td colSpan="7" className="text-center py-16">
                     <Package size={32} className="mx-auto text-gray-300 mb-3" />
                     <div className="text-gray-900 font-bold mb-1">Katalog Kosong</div>
                     <div className="text-gray-500 text-sm">Tidak ada produk yang sesuai.</div>
                   </td></tr>
-                ) : filtered.map(p => {
+                ) : processedProdukList.map(p => {
                   const diskonPct = p.originalPrice && p.originalPrice > p.price
                     ? Math.round((1 - p.price / p.originalPrice) * 100) : null;
                   const isKritis = p.stok <= 5 && p.stok > 0;
@@ -266,6 +319,7 @@ export default function AdminProduk() {
 
                   return (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      {/* SLOT 1: INFO PRODUK (Nama & Gambar Saja) */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           {p.gambar_produk ? (
@@ -277,14 +331,25 @@ export default function AdminProduk() {
                           )}
                           <div>
                             <div className="text-gray-900 text-sm font-bold truncate max-w-[200px]">{p.name}</div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-emerald-600 text-xs font-black">{formatRp(p.price)}</span>
-                              {p.originalPrice && <span className="text-gray-400 text-xs line-through">{formatRp(p.originalPrice)}</span>}
-                              {diskonPct && <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded font-bold">-{diskonPct}%</span>}
-                            </div>
                           </div>
                         </div>
                       </td>
+
+                      {/* SLOT 2: HARGA (Terpisah, Bersih, dan Bisa Disortir) */}
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col justify-center">
+                          <span className="text-emerald-600 text-sm font-black">{formatRp(p.price)}</span>
+                          {p.originalPrice && (
+                            <span className="text-gray-400 text-xs line-through mt-0.5">{formatRp(p.originalPrice)}</span>
+                          )}
+                          {diskonPct && (
+                            <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 px-1.5 py-0.5 rounded font-bold w-fit mt-1">
+                              -{diskonPct}%
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
                       <td className="px-6 py-4">
                         <span className="text-sm text-gray-600 font-medium flex items-center gap-2">
                           <Store size={14} className="text-gray-400" /> {p.nama_toko}
@@ -310,7 +375,7 @@ export default function AdminProduk() {
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
                           <button onClick={() => openEdit(p)} className="p-2 text-gray-500 hover:text-emerald-600 bg-white hover:bg-emerald-50 border border-gray-200 rounded-lg transition-colors shadow-sm"><Edit size={16} /></button>
-                          <button onClick={() => handleDelete(p.id)} className="p-2 text-gray-500 hover:text-red-600 bg-white hover:bg-red-50 border border-gray-200 rounded-lg transition-colors shadow-sm"><Trash2 size={16} /></button>
+                          <button onClick={() => setDeleteItem(p)} className="p-2 text-gray-500 hover:text-red-600 bg-white hover:bg-red-50 border border-gray-200 rounded-lg transition-colors shadow-sm"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>
@@ -322,11 +387,10 @@ export default function AdminProduk() {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL FORM TAMBAH/EDIT PRODUK */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
           <div className="bg-white border border-gray-200 rounded-3xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden">
-
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg"><Package size={20} /></div>
@@ -385,7 +449,7 @@ export default function AdminProduk() {
                   <select className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none cursor-pointer focus:border-emerald-500 transition-all" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                     <option value="leftover">Leftover (Sisa Etalase)</option>
                     <option value="imperfect">Imperfect (Bentuk Kurang Rapi)</option>
-                    <option value="near-expired">Mendekati Waktu Kedaluwarsa</option>
+                    <option value="closing-stock">Mendekati Jam Tutup Toko</option>
                     <option value="canceled">Pesanan Dibatalkan (Masih Hangat)</option>
                   </select>
                 </div>
@@ -429,6 +493,40 @@ export default function AdminProduk() {
           </div>
         </div>
       )}
+
+      {/* MODAL KONFIRMASI HAPUS */}
+      {deleteItem && (
+        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-gray-200 rounded-3xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden transform transition-all scale-100">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                <Trash2 size={32} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-gray-900">Hapus Produk?</h3>
+                <p className="text-sm text-gray-500 mt-2">
+                  Kamu yakin ingin menghapus <strong>{deleteItem.name}</strong> dari etalase? Tindakan ini tidak bisa dibatalkan.
+                </p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-gray-50 flex gap-3">
+              <button 
+                onClick={() => setDeleteItem(null)} 
+                className="flex-1 bg-white border border-gray-200 text-gray-700 font-bold py-2.5 rounded-xl text-sm hover:bg-gray-100 transition-colors shadow-sm"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={executeDelete} 
+                className="flex-1 bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm hover:bg-red-600 shadow-md active:scale-95 transition-all"
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </AdminLayout>
   );
 }
