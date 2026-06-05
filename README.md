@@ -43,35 +43,6 @@ Di balik angka itu, ada restoran dan katering yang kehilangan pendapatan setiap 
 
 ---
 
-## 🖼️ Screenshot Feature
-
-<table>
-  <tr>
-    <td align="center"><b>🏠 Beranda Konsumen</b></td>
-    <td align="center"><b>📦 Katalog Produk Surplus</b></td>
-    <td align="center"><b>🛒 Keranjang & Checkout</b></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/beranda.png" alt="Beranda" width="280"/></td>
-    <td><img src="docs/screenshots/katalog.png" alt="Katalog" width="280"/></td>
-    <td><img src="docs/screenshots/checkout.png" alt="Checkout" width="280"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>📊 Dashboard Admin/Mitra</b></td>
-    <td align="center"><b>🤖 Prediksi Surplus AI</b></td>
-    <td align="center"><b>🌿 Laporan ESG</b></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/dashboard.png" alt="Dashboard" width="280"/></td>
-    <td><img src="docs/screenshots/prediksi.png" alt="Prediksi AI" width="280"/></td>
-    <td><img src="docs/screenshots/laporan-esg.png" alt="Laporan ESG" width="280"/></td>
-  </tr>
-</table>
-
-> 📸 Simpan screenshot aplikasi ke folder `docs/screenshots/` agar tabel di atas tampil.
-
----
-
 ## ✨ Fitur Utama
 
 ### 👤 Konsumen
@@ -90,7 +61,6 @@ Di balik angka itu, ada restoran dan katering yang kehilangan pendapatan setiap 
 | 📊 Dashboard | Statistik pendapatan, pesanan, & listing real-time |
 | 🔮 Prediksi Surplus | Simulator XGBoost — status Kritis/Waspada/Aman + rekomendasi diskon otomatis |
 | 📦 Manajemen Produk | CRUD produk surplus dengan apply-discount dari prediksi AI |
-| 🌍 Laporan ESG | Estimasi CO₂ terselamatkan, porsi makanan, & dampak air |
 | 👥 Kelola Mitra | Superadmin: daftarkan & kelola akun mitra (RBAC penuh) |
 
 ---
@@ -190,8 +160,6 @@ Final Score = (content_similarity × 0.50) + (ncf_score × 0.30) + (surplus_boos
 | 📊 **Dashboard Streamlit** | *[(link Streamlit)](https://dashboard-keduakali.streamlit.app/)* |
 | 📓 **Main Notebook** | *[(link Colab)](https://colab.research.google.com/drive/1PlE1cknDO4sFTSZrOTNILOp2Nn2AVXCK?usp=sharing)* |
 | 📋 **A/B Testing** | *[(link)](https://colab.research.google.com/drive/1xQw_ZA_2lLn0PBI94LFR9FMHV3LfzoM1?usp=sharing)* |
-| 🏗️ **Prediksi Surplus** | *(link)* |
-| 🎯 **System Recommendation** | *(link)* |
 
 **Demo Admin Panel:**
 ```
@@ -376,19 +344,6 @@ KeduaKali/
 | **Backend** | Railway | Root: `backend/` · Start: `node index.js` |
 | **AI Service** | Railway | Root: `keduakali_ai/` · Start: `uvicorn app:app --host 0.0.0.0 --port $PORT` |
 | **Database** | Supabase | Transaction pooler port 6543, SSL aktif otomatis |
-
----
-
-## 🌍 Dampak ESG
-
-Setiap transaksi di KeduaKali dikontribusikan ke laporan dampak lingkungan mitra:
-
-| Metrik | Estimasi |
-|--------|----------|
-| 🌱 **CO₂ terselamatkan** | ~2.5 kg CO₂ per kg makanan yang tidak terbuang |
-| 🍽️ **Porsi makanan** | Jumlah porsi yang berhasil diselamatkan |
-| 💧 **Dampak air** | Liter air yang tidak terbuang sia-sia |
-| 💰 **Revenue recovery** | Pendapatan mitra yang berhasil dipulihkan |
 
 ---
 
