@@ -1,243 +1,227 @@
-# KeduaKali
+<div align="center">
 
-**KeduaKali** adalah platform surplus makanan berbasis AI yang menghubungkan mitra F&B/ritel dengan konsumen. Mitra memasarkan stok sisa (leftover) dengan harga diskon; konsumen memesan dan mengambil sendiri (self-pickup). Sistem memakai prediksi surplus (XGBoost) dan rekomendasi hybrid (Neural Collaborative Filtering + content-based) untuk mengurangi food waste dan meningkatkan penjualan.
+<img src="frontend/src/public/logo1.png" alt="KeduaKali Logo" width="120" height="120" />
 
----
+# KeduaKali 
 
-## Fitur Frontend
+### *Platform Cerdas Penyelamat Makanan Leftover*
 
-Aplikasi konsumen dan panel admin dibangun dengan **React 18 + Vite + Tailwind CSS**. Routing diatur di `frontend/src/App.jsx`.
+**Menghubungkan surplus F&B dengan konsumen melalui kecerdasan buatan —**  
+**mengurangi food waste, memulihkan pendapatan mitra, menjaga bumi.**
 
-### Aplikasi Konsumen (`/`)
+<br/>
 
-| Halaman | Rute | Deskripsi |
-|---------|------|-----------|
-| **Beranda** | `/` | Banner promo, kategori (F&B, ritel, bakery, dll.), daftar toko dengan status buka/tutup real-time, produk unggulan, dan widget **Rekomendasi AI** (`RekomendasiAI`). |
-| **Katalog** | `/katalog` | Daftar produk surplus dengan filter kategori dan pencarian. |
-| **Detail Produk** | `/produk/:id` | Informasi produk, harga diskon, stok, batas konsumsi; tambah ke keranjang. |
-| **Detail Toko** | `/toko/:id` | Profil mitra, jam operasional, produk per toko. |
-| **Keranjang** | `/keranjang` | Keranjang persisten (`localStorage`), kebijakan **single-store** (satu toko per checkout self-pickup), validasi stok. |
-| **Checkout** | `/checkout` | Form identitas pengambilan, pilihan metode pembayaran (mock QRIS/VA), checkout ke API (wajib login). |
-| **Sukses** | `/success` | Konfirmasi pesanan berhasil. |
-| **Pesanan** | `/pesanan` | Riwayat transaksi konsumen. |
-| **Akun** | `/akun` | Profil pengguna dan logout. |
-| **Login / Register** | `/login`, `/register` | Autentikasi konsumen via JWT. |
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-kedua--kali.vercel.app-22c55e?style=for-the-badge&labelColor=14532d)](https://kedua-kali.vercel.app)
+[![Backend API](https://img.shields.io/badge/⚡_Backend_API-Railway-6366f1?style=for-the-badge&labelColor=312e81)](https://keduakali-production.up.railway.app)
+[![AI Service](https://img.shields.io/badge/🤖_AI_Service-Swagger_Docs-f59e0b?style=for-the-badge&labelColor=78350f)](https://hearty-mindfulness-production-70b9.up.railway.app/docs)
+[![GitHub](https://img.shields.io/badge/📁_Repository-GitHub-24292e?style=for-the-badge&logo=github)](https://github.com/paranroman/KeduaKali)
 
-Navigasi bawah mobile (`BottomNav`) disembunyikan di checkout, success, login, register, pesanan, detail produk, dan detail toko.
+<br/>
 
-### Panel Admin & Mitra (`/admin/*`)
+![React](https://img.shields.io/badge/React_18-61DAFB?style=flat-square&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite_5-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Express](https://img.shields.io/badge/Express_5-000000?style=flat-square&logo=express&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=flat-square&logo=tensorflow&logoColor=white)
+![XGBoost](https://img.shields.io/badge/XGBoost-0080FF?style=flat-square&logoColor=white)
 
-| Halaman | Rute | Akses | Deskripsi |
-|---------|------|-------|-----------|
-| **Admin Login** | `/admin/login` | Publik | Login untuk `superadmin` dan `mitra`. |
-| **Dashboard** | `/admin/dashboard` | Superadmin, Mitra | Statistik pendapatan, pesanan pending, listing aktif, grafik; mitra hanya melihat data tokonya. |
-| **Prediksi AI** | `/admin/prediksi` | Superadmin, Mitra | Simulator prediksi surplus XGBoost; terapkan diskon otomatis ke produk (`apply-discount`). |
-| **Manajemen Toko** | `/admin/toko` | Superadmin, Mitra | Superadmin: CRUD toko & assign mitra. Mitra: edit profil toko sendiri. |
-| **Produk Saya** | `/admin/produk` | Superadmin, Mitra | CRUD produk surplus; mitra terbatas pada `store_id` JWT. |
-| **Pesanan Masuk** | `/admin/pesanan` | Superadmin, Mitra | Daftar transaksi & ubah status pesanan. |
-| **Laporan ESG** | `/admin/laporan` | Superadmin, Mitra | Dampak lingkungan (makanan diselamatkan, emisi, air, dana). |
-| **Verifikasi Mitra** | `/admin/mitra` | Superadmin saja | Daftar, daftarkan, dan hapus akun mitra. |
-| **Pengguna Sistem** | `/admin/users` | Superadmin saja | Daftar semua pengguna. |
-| **Pengaturan** | `/admin/pengaturan` | Superadmin, Mitra | Preferensi panel admin. |
+</div>
 
 ---
 
-## Fitur Backend
+## 📌 Tentang KeduaKali
 
-API REST **Express.js** (entry point: `backend/index.js`, port default **5000**). Prefix semua rute: `/api`.
+Indonesia membuang **23–48 juta ton makanan** setiap tahun, menyebabkan kerugian ekonomi sebesar **Rp551 triliun** dan menyumbang **7,29% emisi gas rumah kaca nasional** *(Bappenas)*.
 
-### `GET /` (root)
+Di balik angka itu, ada restoran dan katering yang kehilangan pendapatan setiap hari dari makanan yang tidak terjual — karena tidak ada sistem yang membantu mereka memprediksi surplus lebih awal, dan tidak ada saluran distribusi sekunder yang cukup cepat.
 
-Health check — respons teks/JSON bahwa API berjalan.
+**KeduaKali** hadir sebagai solusi *painkiller*: platform web yang menghubungkan makanan surplus dari pelaku usaha F&B dengan konsumen, sebelum makanan tersebut benar-benar terbuang. Sistem menggunakan **prediksi surplus berbasis XGBoost** dan **rekomendasi produk hybrid (NCF + content-based)** untuk memastikan distribusi yang tepat sasaran.
 
-### `/api/users`
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-----------|
-| POST | `/register` | Publik | Registrasi pengguna (default role: `konsumen`). |
-| POST | `/login` | Publik | Login; mengembalikan JWT + data user (`store_id` untuk mitra). |
-| GET | `/` | Superadmin | Daftar semua pengguna. |
-| POST | `/register-mitra` | Superadmin | Buat akun mitra baru. |
-| GET | `/mitras` | Superadmin | Daftar mitra beserta info toko terkait. |
-| DELETE | `/:id` | Superadmin | Hapus user (mitra; superadmin tidak bisa dihapus). |
-
-### `/api/products`
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-----------|
-| GET | `/` | Publik | Semua produk (join info toko). |
-| GET | `/:id` | Publik | Detail produk. |
-| POST | `/` | Mitra / Superadmin | Tambah produk. |
-| PUT | `/:id` | Mitra / Superadmin | Edit produk (mitra: hanya toko sendiri). |
-| PUT | `/:id/apply-discount` | Mitra / Superadmin | Terapkan diskon & stok dari hasil prediksi AI. |
-| DELETE | `/:id` | Mitra / Superadmin | Hapus produk. |
-
-### `/api/transactions`
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-----------|
-| POST | `/checkout` | Konsumen (JWT) | Buat pesanan, kurangi stok. |
-| GET | `/history` | Konsumen (JWT) | Riwayat pesanan user. |
-| GET | `/` | Mitra / Superadmin | Semua transaksi (mitra: filter per toko). |
-| PUT | `/:id/status` | Mitra / Superadmin | Ubah status pesanan. |
-
-### `/api/stores`
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-----------|
-| GET | `/` | Publik | Daftar toko. |
-| GET | `/:id` | Publik | Detail toko. |
-| GET | `/my-store` | Mitra (JWT) | Toko milik mitra yang login. |
-| PUT | `/my-store/:id` | Mitra (JWT) | Edit toko sendiri. |
-| POST | `/` | Superadmin | Buat toko baru. |
-| PUT | `/:id` | Superadmin | Edit toko. |
-| DELETE | `/:id` | Superadmin | Hapus toko. |
-| POST | `/assign-mitra` | Superadmin | Assign mitra ke toko. |
-| POST | `/unassign-mitra` | Superadmin | Lepas mitra dari toko. |
-
-### `/api/ai`
-
-| Method | Endpoint | Auth | Deskripsi |
-|--------|----------|------|-----------|
-| POST | `/predict` | JWT | Proxy ke FastAPI `/predict` (prediksi surplus). |
-| GET | `/recommendations` | Publik | Proxy ke FastAPI `/api/recommend`, enrich dengan data produk PostgreSQL. |
-
-Query rekomendasi: `type` (`user` | `product` | `cold`), `id`, `restaurant_type`, `meal_type`, `weather_condition`, `day_of_week`, `is_weekend`, `has_promotion`, `special_event`, `extra_preferences`, `top_k`.
-
-### Catatan
-
-- File `backend/server.js` adalah alternatif entry dengan CORS terkonfigurasi dan mock `GET /api/recommendations`; untuk development standar gunakan `npm run dev` yang menjalankan `index.js`.
-- Database: PostgreSQL via `pg` pool (`backend/config/db.js`).
+> *Karena setiap produk yang terbuang adalah kerugian ganda — bagi bisnis yang kehilangan pendapatan, dan bagi lingkungan yang menanggung beban emisinya.*
 
 ---
 
-## Fitur AI (`keduakali_ai/`)
+## ✨ Fitur Utama
 
-Microservice **FastAPI** (port default **8000**) — `keduakali_ai/app.py`.
+### 👤 Konsumen
+| Fitur | Deskripsi |
+|-------|-----------|
+| 🔐 Autentikasi | Registrasi & login dengan JWT |
+| 🛍️ Katalog Surplus | Jelajahi produk dengan filter kategori & pencarian |
+| 🤖 Rekomendasi AI | Produk personal berbasis NCF + content-based filtering |
+| 🛒 Keranjang | Keranjang persisten dengan validasi single-store |
+| 📦 Checkout | Self-pickup dengan mock QRIS/VA |
+| 📜 Riwayat | Lacak semua pesanan kamu |
 
-### Model & artefak
-
-| Komponen | File / folder | Fungsi |
-|----------|---------------|--------|
-| **XGBoost Surplus** | `xgboost_surplus_model.pkl`, `scaler_numeric.pkl`, `encoders_dict.pkl` | Prediksi volume penjualan & status surplus (Kritis / Waspada / Aman). |
-| **Hybrid Recommender** | `artifacts_hybrid_recommender/` (`.keras`, `.joblib`, `.npy`, `.csv`) | NCF + content similarity + surplus boost. |
-
-> Artefak model (`.pkl`, `.keras`) tidak disertakan di repositori. Siapkan file tersebut di folder `keduakali_ai/` sebelum menjalankan layanan.
-
-### Endpoint FastAPI
-
-| Method | Path | Deskripsi |
-|--------|------|-----------|
-| POST | `/predict` | Prediksi surplus: status, rekomendasi diskon, breakdown faktor (cuaca, hari, promo, event, harga), estimasi CO₂ & porsi terselamatkan. |
-| POST | `/api/recommend` | Rekomendasi produk hybrid (`top_k` ID produk); skor gabungan similarity (50%), NCF (30%), surplus boost (20%). |
-
-### Utilitas
-
-| Script | Deskripsi |
-|--------|-----------|
-| `sync_db_to_ai.py` | Sinkronkan produk PostgreSQL → `artifacts_hybrid_recommender/hybrid_item_metadata.csv` agar rekomendasi selaras dengan katalog live. |
+### 🏪 Mitra & Admin
+| Fitur | Deskripsi |
+|-------|-----------|
+| 📊 Dashboard | Statistik pendapatan, pesanan, & listing real-time |
+| 🔮 Prediksi Surplus | Simulator XGBoost — status Kritis/Waspada/Aman + rekomendasi diskon otomatis |
+| 📦 Manajemen Produk | CRUD produk surplus dengan apply-discount dari prediksi AI |
+| 👥 Kelola Mitra | Superadmin: daftarkan & kelola akun mitra (RBAC penuh) |
 
 ---
 
-## Tech Stack
+## 🏗️ Arsitektur Sistem
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    LAPISAN FRONTEND                      │
+│              React + Vite  (Vercel)                      │
+│         [Konsumen App]  +  [Admin/Mitra Panel]           │
+└──────────────────────┬──────────────────────────────────┘
+                       │  HTTP + JWT Bearer
+┌──────────────────────▼──────────────────────────────────┐
+│                   LAPISAN BACKEND                        │
+│              Express.js REST API  (Railway)              │
+│   Auth │ Products │ Transactions │ Stores │ AI Proxy     │
+│                         │                                │
+│                    PostgreSQL                            │
+│                    (Supabase)                            │
+└──────────────────────┬──────────────────────────────────┘
+                       │  axios POST (server-side only)
+┌──────────────────────▼──────────────────────────────────┐
+│                   LAPISAN AI SERVICE                     │
+│                FastAPI  (Railway)                        │
+│   ┌─────────────────┐    ┌───────────────────────────┐  │
+│   │  XGBoost Model  │    │  Hybrid NCF Recommender   │  │
+│   │  Surplus Pred.  │    │  (Neural CF + Content)    │  │
+│   └─────────────────┘    └───────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+> **Prinsip keamanan:** Frontend tidak pernah memanggil FastAPI secara langsung. Semua request AI melalui Express sebagai gateway — kredensial AI terisolasi di server.
+
+---
+
+## 🔄 Alur Data — Rekomendasi AI
+
+```
+Konsumen buka Beranda
+        │
+        ▼
+React: GET /api/ai/recommendations?type=user&id=...
+        │
+        ▼
+Express: aiController.getRecommendations()
+        │
+        ▼
+FastAPI: POST /api/recommend  ← payload konteks (cuaca, hari, meal type, dsb.)
+        │
+        ▼
+Hybrid Score: hybrid_similarity (60%) + NCF (35%) + surplus boost (5%)
+        │
+        ▼
+Express: SELECT products WHERE id = ANY([12, 5, 8...]) AND stok > 0
+        │
+        ▼
+React: Render ProductCard — Rekomendasi Ditampilkan ✨
+```
+
+---
+
+## 🤖 Model AI
+
+| Model | Teknologi | Fungsi | Output |
+|-------|-----------|--------|--------|
+| **Surplus Predictor** | XGBoost + scikit-learn | Prediksi volume penjualan & status surplus berdasarkan cuaca, hari, promo, event, harga | `Kritis` / `Waspada` / `Aman` + rekomendasi diskon % |
+| **Hybrid Recommender** | Neural CF (Keras/TF) + Content-Based | Rekomendasi produk personal dengan skor gabungan | Array `product_id` terurut |
+
+**Bobot Hybrid Recommender:**
+```
+Final Score = (hybrid_similarity × 0.60) + (ncf_score × 0.35) + (surplus_boost × 0.05)
+```
+
+---
+
+## 🛠️ Tech Stack
 
 | Lapisan | Teknologi |
 |---------|-----------|
 | **Frontend** | React 18, React Router v6, Vite 5, Tailwind CSS 3, Lucide React |
-| **Backend** | Node.js, Express 5, PostgreSQL (`pg`), bcrypt, jsonwebtoken, axios, cors, dotenv |
-| **AI** | Python, FastAPI, Uvicorn, XGBoost, scikit-learn, TensorFlow/Keras, pandas, NumPy, joblib |
-| **Database** | PostgreSQL |
-| **Auth** | JWT (Bearer), role-based access control |
-| **DevOps (opsional)** | Vercel-ready export di `backend/index.js` (`NODE_ENV=production`) |
+| **Backend** | Node.js, Express 5, PostgreSQL (`pg`), bcrypt, jsonwebtoken, axios |
+| **AI Service** | Python, FastAPI, Uvicorn, XGBoost, TensorFlow/Keras, scikit-learn, pandas, NumPy, joblib |
+| **Database** | PostgreSQL (Supabase — Transaction Pooler) |
+| **Auth** | JWT Bearer Token, Role-Based Access Control (RBAC) |
+| **Deployment** | Vercel (frontend) · Railway (backend + AI) · Supabase (database) |
 
 ---
 
-## Environment Variables
+## 🔗 Link Penting
 
-Buat file `.env` di folder masing-masing (jangan di-commit; sudah ada di `.gitignore`).
+| Layanan | URL |
+|---------|-----|
+| 🌐 **Frontend (Konsumen & Admin)** | https://kedua-kali.vercel.app |
+| ⚡ **Backend API** | https://keduakali-production.up.railway.app |
+| 🤖 **AI Service (Swagger Docs)** | https://hearty-mindfulness-production-70b9.up.railway.app/docs |
+| 🤖 **Tautan Model** | [(link Model)](https://drive.google.com/drive/folders/1zS_OCQPg44pEz1S6QI9I6a-ZxcB2-5um) |
+| 📊 **Dashboard Streamlit** | *[(link Streamlit)](https://dashboard-keduakali.streamlit.app/)* |
+| 📓 **Main Notebook** | *[(link Colab)](https://colab.research.google.com/drive/1PlE1cknDO4sFTSZrOTNILOp2Nn2AVXCK?usp=sharing)* |
+| 📋 **A/B Testing** | *[(link)](https://colab.research.google.com/drive/1xQw_ZA_2lLn0PBI94LFR9FMHV3LfzoM1?usp=sharing)* |
 
-### `backend/.env`
+**Demo Admin Panel:**
+```
+URL      : https://kedua-kali.vercel.app/admin/login
+Email    : bos@keduakali.com
+Password : keduakali
+```
 
+---
+
+## 👤 Role & Akses
+
+```
+┌─────────────────┬──────────────────────────────────────────────┐
+│      Role       │                   Akses                      │
+├─────────────────┼──────────────────────────────────────────────┤
+│  superadmin     │  Akses penuh: CRUD semua toko, produk,       │
+│                 │  mitra, pengguna, dan seluruh transaksi       │
+├─────────────────┼──────────────────────────────────────────────┤
+│  mitra          │  Akses terbatas pada toko sendiri:           │
+│                 │  produk, pesanan, prediksi AI, laporan ESG   │
+├─────────────────┼──────────────────────────────────────────────┤
+│  konsumen       │  Akses katalog, checkout, riwayat pesanan    │
+└─────────────────┴──────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Setup Lokal
+
+### Prasyarat
+- Node.js 18+
+- Python 3.10+
+- PostgreSQL 14+ (atau gunakan Supabase)
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/paranroman/KeduaKali.git
+cd KeduaKali
+```
+
+### 2. Backend (Express.js)
+
+```bash
+cd backend
+cp .env.example .env   # isi environment variables
+npm install
+npm run migrate        # setup skema database
+npm run dev            # → http://localhost:5000
+```
+
+**`backend/.env`:**
 ```env
-# Server
 PORT=5000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
-
-# JWT
-JWT_SECRET=ubah_dengan_string_rahasia_panjang
-
-# PostgreSQL (pilih connection string ATAU parameter terpisah)
+JWT_SECRET=your_jwt_secret_panjang_dan_kuat
 DATABASE_URL=postgresql://user:password@localhost:5432/keduakali_db
-DB_USER=postgres
-DB_HOST=localhost
-DB_NAME=keduakali_db
-DB_PASSWORD=your_password
-DB_PORT=5432
-
-# AI Microservice
 AI_SERVICE_URL=http://localhost:8000
-# alias yang juga didukung:
-# FASTAPI_URL=http://localhost:8000
 ```
-
-SSL database: otomatis **nonaktif** jika `DB_HOST=localhost`, selain itu SSL dengan `rejectUnauthorized: false`.
-
-### `frontend/.env`
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-### `keduakali_ai/` (sinkronisasi DB)
-
-Sesuaikan kredensial di `sync_db_to_ai.py` dengan database backend Anda, atau refactor ke variabel lingkungan:
-
-```env
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=keduakali_db
-```
-
----
-
-## Cara Setup & Menjalankan Project
-
-### Prasyarat
-
-- **Node.js** 18+
-- **PostgreSQL** 14+
-- **Python** 3.10+ (untuk layanan AI)
-- Artefak model AI (lihat bagian Fitur AI)
-
-### 1. Database
-
-```bash
-# Buat database di PostgreSQL
-createdb keduakali_db
-
-# Jalankan migrasi skema awal
-cd backend
-npm install
-npm run migrate
-```
-
-Skema dasar ada di `backend/database/setup.sql`. Untuk produksi, tambahkan kolom yang dipakai kode (mis. `stores.user_id`, `users.kontak`, `transactions.quantity`, `products.gambar_produk`) jika belum ada setelah migrasi awal.
-
-Buat akun **superadmin** secara manual di tabel `users` (password di-hash bcrypt) atau lewat registrasi lalu ubah `role` di database.
-
-### 2. Backend (Express)
-
-```bash
-cd backend
-cp .env.example .env   # jika ada; atau buat .env manual
-npm install
-npm run dev            # nodemon → http://localhost:5000
-```
-
-Verifikasi: buka `http://localhost:5000` — harus menampilkan pesan API running.
 
 ### 3. AI Service (FastAPI)
 
@@ -247,67 +231,152 @@ python -m venv venv
 
 # Windows
 venv\Scripts\activate
+# Mac/Linux
+# source venv/bin/activate
 
 pip install -r requirements.txt
-
-# Pastikan file model .pkl dan folder artifacts_hybrid_recommender lengkap
-python sync_db_to_ai.py   # opsional: sinkron katalog ke metadata AI
-
+python sync_db_to_ai.py     # sinkron katalog produk ke metadata AI (opsional)
 uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+# → http://localhost:8000/docs
 ```
 
-Dokumentasi interaktif API: `http://localhost:8000/docs`
+> ⚠️ Pastikan file artefak model (`.pkl`, `.keras`, folder `artifacts_hybrid_recommender/`) sudah tersedia di `keduakali_ai/` sebelum menjalankan.
 
-### 4. Frontend (React)
+### 4. Frontend (React + Vite)
 
 ```bash
 cd frontend
-# buat .env dengan VITE_API_URL
+echo "VITE_API_URL=http://localhost:5000/api" > .env
 npm install
-npm run dev            # http://localhost:5173
+npm run dev    # → http://localhost:5173
 ```
 
-| URL | Peran |
-|-----|-------|
-| http://localhost:5173 | Aplikasi konsumen |
-| http://localhost:5173/admin/login | Panel admin / mitra |
-| http://localhost:5000/api | REST API |
-| http://localhost:8000 | AI microservice |
+### ▶️ Urutan Menjalankan
 
-### Urutan menjalankan (disarankan)
-
-1. PostgreSQL  
-2. Backend Express  
-3. FastAPI AI  
-4. Frontend Vite  
-
-Jalankan `sync_db_to_ai.py` setelah menambah/mengubah produk agar rekomendasi AI memakai katalog terbaru.
-
-### Build production (frontend)
-
-```bash
-cd frontend
-npm run build
-npm run preview
 ```
+1. PostgreSQL
+2. Backend Express  → http://localhost:5000
+3. FastAPI AI       → http://localhost:8000
+4. Frontend Vite    → http://localhost:5173
+```
+
+> 💡 Jalankan `sync_db_to_ai.py` setelah menambah/mengubah produk agar rekomendasi AI memakai katalog terbaru.
 
 ---
 
-## Struktur Repositori (ringkas)
+## 📡 API Endpoints
+
+### Auth & Users `/api/users`
+| Method | Endpoint | Auth | Deskripsi |
+|--------|----------|------|-----------|
+| `POST` | `/register` | Publik | Registrasi konsumen |
+| `POST` | `/login` | Publik | Login, return JWT |
+| `POST` | `/register-mitra` | Superadmin | Buat akun mitra |
+| `GET` | `/` | Superadmin | Daftar semua user |
+| `DELETE` | `/:id` | Superadmin | Hapus user mitra |
+
+### Products `/api/products`
+| Method | Endpoint | Auth | Deskripsi |
+|--------|----------|------|-----------|
+| `GET` | `/` | Publik | Semua produk surplus |
+| `GET` | `/:id` | Publik | Detail produk |
+| `POST` | `/` | Mitra/Superadmin | Tambah produk |
+| `PUT` | `/:id` | Mitra/Superadmin | Edit produk |
+| `PUT` | `/:id/apply-discount` | Mitra/Superadmin | Terapkan diskon dari prediksi AI |
+| `DELETE` | `/:id` | Mitra/Superadmin | Hapus produk |
+
+### Transactions `/api/transactions`
+| Method | Endpoint | Auth | Deskripsi |
+|--------|----------|------|-----------|
+| `POST` | `/checkout` | Konsumen | Buat pesanan, kurangi stok |
+| `GET` | `/history` | Konsumen | Riwayat pesanan user |
+| `GET` | `/` | Mitra/Superadmin | Semua transaksi |
+| `PUT` | `/:id/status` | Mitra/Superadmin | Update status pesanan |
+
+### AI `/api/ai`
+| Method | Endpoint | Auth | Deskripsi |
+|--------|----------|------|-----------|
+| `POST` | `/predict` | JWT | Prediksi surplus XGBoost |
+| `GET` | `/recommendations` | Publik | Rekomendasi produk hybrid |
+
+**Query params `/recommendations`:** `type` · `id` · `restaurant_type` · `meal_type` · `weather_condition` · `day_of_week` · `is_weekend` · `has_promotion` · `special_event` · `top_k`
+
+---
+
+## 📁 Struktur Repositori
 
 ```
-keduakali_app/
-├── frontend/          # React + Vite (konsumen & admin)
-├── backend/           # Express API + PostgreSQL
-├── keduakali_ai/      # FastAPI + model ML
+KeduaKali/
+│
+├── frontend/                    # React + Vite (konsumen & admin)
+│   └── src/
+│       ├── pages/               # Beranda, Katalog, Detail, Keranjang, dll.
+│       ├── admin/pages/         # Dashboard, Prediksi, Produk, ESG, dll.
+│       ├── components/          # RekomendasiAI, SurplusBanner
+│       ├── context/             # AuthContext, AdminAuthContext, CartContext
+│       └── services/api.js      # HTTP client terpusat (auto-inject JWT)
+│
+├── backend/                     # Express.js REST API
+│   ├── controllers/             # Business logic per resource
+│   ├── routes/                  # userRoutes, productRoutes, aiRoutes, dll.
+│   ├── middlewares/             # verifyToken, verifyMitra, verifySuperAdmin
+│   ├── models/                  # DB query models
+│   └── database/setup.sql       # Skema awal PostgreSQL
+│
+├── keduakali_ai/                # FastAPI + ML Models
+│   ├── app.py                   # Endpoints: /predict & /api/recommend
+│   ├── xgboost_surplus_model.pkl
+│   ├── scaler_numeric.pkl
+│   ├── encoders_dict.pkl
+│   ├── artifacts_hybrid_recommender/   # NCF model + metadata CSV
+│   └── sync_db_to_ai.py         # Sinkronisasi katalog DB → AI metadata
+│
 ├── README.md
-└── ARCHITECTURE.md    # Diagram arsitektur & alur JWT
+└── ARCHITECTURE.md              # Diagram arsitektur & alur JWT lengkap
 ```
-
-Detail arsitektur, alur data, peran pengguna, dan autentikasi JWT: lihat **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
 ---
 
-## Lisensi
+## ☁️ Deployment
 
-ISC (sesuai `package.json` backend). Sesuaikan jika proyek dipublikasikan secara resmi.
+| Komponen | Platform | Konfigurasi |
+|----------|----------|-------------|
+| **Frontend** | Vercel | Root: `frontend/` · Env: `VITE_API_URL` |
+| **Backend** | Railway | Root: `backend/` · Start: `node index.js` |
+| **AI Service** | Railway | Root: `keduakali_ai/` · Start: `uvicorn app:app --host 0.0.0.0 --port $PORT` |
+| **Database** | Supabase | Transaction pooler port 6543, SSL aktif otomatis |
+
+---
+
+## 👥 Tim CC26-PSU226
+
+**Coding Camp 2026 powered by DBS Foundation**
+
+| Nama | Role | Learning Path |
+|------|------|---------------|
+| **Cantyka Laily Sabila** | AI Engineer | Artificial Intelligence |
+| **Farhan Ar Rahman** | AI Engineer | Artificial Intelligence |
+| **Alissya Humairah Martiasaputri** | Data Scientist | Data Science |
+| **Chyntia Claudia** | Data Scientist | Data Science |
+| **Abrar Naufal Fadhillah Cut** | Full-Stack Web Developer | Web Development |
+| **Sabrina Filda Fannisda** | Full-Stack Web Developer | Web Development |
+
+**Advisor:**
+- [RC26-353] Muhammad Nanda Setiawan
+- [RC26-308] Marthin Satrya Pasaribu
+
+---
+
+## 📄 Lisensi
+
+ISC — Coding Camp 2026 powered by DBS Foundation
+
+---
+
+<div align="center">
+
+Made with 💚 to reduce food waste in Indonesia
+
+*KeduaKali — karena setiap makanan berhak mendapat kesempatan kedua.*
+
+</div>
