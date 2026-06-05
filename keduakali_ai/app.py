@@ -24,10 +24,12 @@ scaler = None
 encoders = None
 
 ncf_model = None
-user_embedding_model = None
-mean_user_embedding = None
-user_encoder = None
 item_encoder = None
+ctx_repr_model = None
+content_features_global = None
+context_ohe = None
+CONTEXT_CAT_COLS = None
+CONTEXT_NUM_COLS = None
 ingredient_encoder = None
 category_encoder = None
 content_numeric_scaler = None
@@ -75,9 +77,10 @@ class DemandWeightedBCELoss(tf.keras.losses.Loss):
 @app.on_event("startup")
 def load_all_models():
     global model_xgboost, scaler, encoders
-    global ncf_model, user_embedding_model, mean_user_embedding
-    global user_encoder, item_encoder, ingredient_encoder, category_encoder, content_numeric_scaler
-    global CONTENT_CAT_COLS, CONTENT_NUMERIC_COLS, hybrid_features, hybrid_meta
+    global ncf_model, ctx_repr_model, content_features_global
+    global item_encoder, ingredient_encoder, category_encoder, content_numeric_scaler, context_ohe
+    global CONTENT_CAT_COLS, CONTENT_NUMERIC_COLS, CONTEXT_CAT_COLS, CONTEXT_NUM_COLS
+    global hybrid_features, hybrid_meta
 
     print("⏳ Memuat semua model AI ke dalam memory...")
 
@@ -90,44 +93,50 @@ def load_all_models():
     except Exception as e:
         print(f"❌ [XGBoost] Error memuat model: {e}")
 
-    # --- B. Load Model NCF (Rekomendasi) ---
+   # --- B. Load Model NCF (Rekomendasi) ---
     try:
         artifact_dir = "artifacts_hybrid_recommender/"
 
         preprocess_arts = joblib.load(artifact_dir + "hybrid_preprocess_artifacts.joblib")
-        user_encoder = preprocess_arts["user_encoder"]
-        item_encoder = preprocess_arts["item_encoder"]
-        ingredient_encoder = preprocess_arts["ingredient_encoder"]
-        category_encoder = preprocess_arts["category_encoder"]
+        item_encoder           = preprocess_arts["item_encoder"]
+        ingredient_encoder     = preprocess_arts["ingredient_encoder"]
+        category_encoder       = preprocess_arts["category_encoder"]
         content_numeric_scaler = preprocess_arts["content_numeric_scaler"]
-        CONTENT_CAT_COLS = preprocess_arts["content_cat_cols"]
-        CONTENT_NUMERIC_COLS = preprocess_arts["content_numeric_cols"]
+        context_ohe            = preprocess_arts["context_ohe"]
 
-        hybrid_meta = pd.read_csv(artifact_dir + "hybrid_item_metadata.csv")
-        # Membersihkan spasi pada header kolom metadata agar aman diakses
+        CONTENT_CAT_COLS  = preprocess_arts.get("content_cat_cols",
+            ["restaurant_type", "meal_type", "price_segment", "waste_level"])
+        CONTENT_NUMERIC_COLS = preprocess_arts.get("content_numeric_cols",
+            ["actual_selling_price", "typical_ingredient_cost",
+             "observed_market_price", "price_margin", "Wastage Food Amount"])
+        CONTEXT_CAT_COLS  = preprocess_arts.get("context_cat_cols",
+            ["restaurant_type", "meal_type", "weather_condition", "price_segment"])
+        CONTEXT_NUM_COLS  = preprocess_arts.get("context_num_cols",
+            ["day_of_week", "is_weekend", "has_promotion", "special_event"])
+
+        hybrid_meta     = pd.read_csv(artifact_dir + "hybrid_item_metadata.csv")
         hybrid_meta.columns = [col.strip() for col in hybrid_meta.columns]
-
         hybrid_features = np.load(artifact_dir + "hybrid_augmented_features.npy")
 
         ncf_model = tf.keras.models.load_model(
             artifact_dir + "kedua_kali_ncf_model.keras",
-            custom_objects={"L2Normalize": L2Normalize, "DemandWeightedBCELoss": DemandWeightedBCELoss}
+            custom_objects={
+                "L2Normalize": L2Normalize,
+                "DemandWeightedBCELoss": DemandWeightedBCELoss
+            }
         )
 
-        user_input = tf.keras.Input(shape=(), name="user_id", dtype="int32")
-        gmf_user = ncf_model.get_layer("gmf_user_emb")(user_input)
-        mlp_user = ncf_model.get_layer("mlp_user_emb")(user_input)
-        gmf_user = tf.keras.layers.Flatten(name="extract_gmf_user_flatten")(gmf_user)
-        mlp_user = tf.keras.layers.Flatten(name="extract_mlp_user_flatten")(mlp_user)
-        output = tf.keras.layers.Concatenate(name="combined_user_embedding")([gmf_user, mlp_user])
-        output = L2Normalize(name="combined_user_l2")(output)
-        user_embedding_model = tf.keras.Model(user_input, output, name="ncf_user_embedding_extractor")
+        ctx_repr_model = tf.keras.Model(
+            ncf_model.input["context_input"],
+            ncf_model.get_layer("ctx_bn_2").output,
+            name="ctx_repr_extractor"
+        )
 
-        all_user_indices = np.arange(len(user_encoder.classes_), dtype="int32")
-        all_user_embeddings = user_embedding_model.predict(all_user_indices, batch_size=512, verbose=0)
-        mean_user_embedding = all_user_embeddings.mean(axis=0)
+        content_features_global = hybrid_features[:, :74]
 
-        print("✅ [NCF] Otak Sistem Rekomendasi berhasil dimuat!")
+        print("✅ [NCF v2] Otak Sistem Rekomendasi berhasil dimuat!")
+        print(f"   hybrid_features shape : {hybrid_features.shape}")
+        print(f"   content_features shape: {content_features_global.shape}")
     except Exception as e:
         print(f"❌ [NCF] Gagal memuat artefak model: {e}")
 
@@ -142,7 +151,10 @@ def clean_text(value: object) -> str:
     return re.sub(r"\s+", " ", text).strip() if text else "unknown"
 
 def split_ingredients(value: object) -> list[str]:
-    return [part.strip() for part in re.split(r"[,|;/]+", clean_text(value)) if part.strip() and part.strip() != "unknown"]
+    return [
+        part.strip() for part in re.split(r"[,|;/]+", clean_text(value))
+        if part.strip() and part.strip() != "unknown"
+    ]
 
 def l2_normalize_np(matrix: np.ndarray, axis: int = 1, epsilon: float = 1e-8) -> np.ndarray:
     matrix = np.asarray(matrix, dtype="float32")
@@ -151,94 +163,89 @@ def l2_normalize_np(matrix: np.ndarray, axis: int = 1, epsilon: float = 1e-8) ->
 
 def normalize_01(values) -> np.ndarray:
     values = np.asarray(list(values), dtype="float32")
-    if len(values) == 0: return values
+    if len(values) == 0:
+        return values
     min_val, max_val = np.nanmin(values), np.nanmax(values)
-    if np.isclose(max_val - min_val, 0): return np.zeros_like(values, dtype="float32")
+    if np.isclose(max_val - min_val, 0):
+        return np.zeros_like(values, dtype="float32")
     return (values - min_val) / (max_val - min_val)
 
-def make_context_from_request(req) -> str:
-    user_context = str(req.user_id) if req.user_id else getattr(req, "restaurant_id", "unknown_restaurant")
-    fields = [
-        user_context,
-        req.restaurant_type, req.meal_type, req.weather_condition,
-        getattr(req, "price_segment", "regular"),
-        f"dow_{req.day_of_week}", f"weekend_{req.is_weekend}",
-        f"promo_{req.has_promotion}", f"event_{req.special_event}"
-    ]
-    return "|".join(clean_text(field) for field in fields)
+def build_query_context_vector(req) -> np.ndarray:
+    cat_data = pd.DataFrame([{
+        "restaurant_type":   clean_text(req.restaurant_type),
+        "meal_type":         clean_text(req.meal_type),
+        "weather_condition": clean_text(req.weather_condition),
+        "price_segment":     clean_text(getattr(req, "price_segment", "regular")),
+    }], columns=CONTEXT_CAT_COLS)
+    x_cat = context_ohe.transform(cat_data.fillna("unknown")).astype("float32")
+    x_num = np.array([[
+        req.day_of_week, req.is_weekend,
+        req.has_promotion, req.special_event
+    ]], dtype="float32")
+    return np.hstack([x_cat, x_num])
 
 def build_query_hybrid_vector(req) -> np.ndarray:
-    # 1. Transformasi fitur preferensi tambahan (ingredients)
-    valid_ingredients = [ing for ing in split_ingredients(req.extra_preferences) if ing in ingredient_encoder.classes_]
-    if not valid_ingredients: valid_ingredients = ["unknown"]
+    valid_ingredients = [
+        ing for ing in split_ingredients(req.extra_preferences)
+        if ing in ingredient_encoder.classes_
+    ]
+    if not valid_ingredients:
+        valid_ingredients = ["unknown"]
     x_ingredients = ingredient_encoder.transform([valid_ingredients]).astype("float32")
 
-    # 2. Transformasi fitur kategori tekstual
     cat_frame = pd.DataFrame([{
         "restaurant_type": clean_text(req.restaurant_type),
-        "meal_type": clean_text(req.meal_type),
-        "price_segment": clean_text(getattr(req, "price_segment", "regular")),
-        "waste_level": "high_waste",
+        "meal_type":       clean_text(req.meal_type),
+        "price_segment":   clean_text(getattr(req, "price_segment", "regular")),
+        "waste_level":     "high_waste",
     }], columns=CONTENT_CAT_COLS)
     x_category = category_encoder.transform(cat_frame).astype("float32")
 
-    # 3. 💡 PERBAIKAN UTAMA: Penanganan kolom numerik yang hilang dari hasil sync DB
-    # Membuat dataframe tiruan dengan kolom numerik yang diwajibkan oleh scaler
-    numeric_df = pd.DataFrame(0.0, index=[0], columns=CONTENT_NUMERIC_COLS)
+    median_numeric = hybrid_meta[CONTENT_NUMERIC_COLS].median(numeric_only=True).to_frame().T
+    x_numeric = content_numeric_scaler.transform(
+        median_numeric[CONTENT_NUMERIC_COLS]
+    ).astype("float32")
 
-    # Ambil nilai asli dari metadata jika kolomnya kebetulan tersedia
-    for col in CONTENT_NUMERIC_COLS:
-        if col in hybrid_meta.columns:
-            # Ambil nilai median dari metadata produk yang ada
-            median_val = hybrid_meta[col].median()
-            numeric_df[col] = median_val if not pd.isna(median_val) else 0.0
+    query_content = np.hstack([x_ingredients, x_category, x_numeric]).astype("float32")
+    query_content = l2_normalize_np(query_content)[0]
 
-    # Lakukan normalisasi/scaling menggunakan scaler yang sudah dimuat sebelumnya
-    x_numeric = content_numeric_scaler.transform(numeric_df).astype("float32")
+    ctx_vec  = build_query_context_vector(req)
+    ctx_repr = ctx_repr_model.predict(ctx_vec, verbose=0)[0]
+    ctx_repr = ctx_repr / max(np.linalg.norm(ctx_repr), 1e-8)
 
-    # Gabungkan semua komponen konten menjadi satu vektor
-    query_content = l2_normalize_np(np.hstack([x_ingredients, x_category, x_numeric]).astype("float32"))[0]
-
-    # 4. Ambil Collaborative Filtering user vector
-    context_id = make_context_from_request(req)
-    if context_id in set(user_encoder.classes_):
-        user_idx = user_encoder.transform([context_id]).astype("int32")
-        query_cf = user_embedding_model.predict(user_idx, verbose=0)[0]
-    else:
-        query_cf = mean_user_embedding
-
-    query_cf = query_cf / max(np.linalg.norm(query_cf), 1e-8)
-    query = np.hstack([query_content, query_cf]).astype("float32")
-    return query / max(np.linalg.norm(query), 1e-8)
+    query_hybrid = np.hstack([query_content, ctx_repr]).astype("float32")
+    return query_hybrid / max(np.linalg.norm(query_hybrid), 1e-8)
 
 def compute_ncf_scores(candidates: pd.DataFrame, req) -> np.ndarray:
-    context_id = make_context_from_request(req)
     scores = np.full(len(candidates), 0.5, dtype="float32")
-    if context_id not in set(user_encoder.classes_): return scores
+    valid  = candidates["menu_key"].isin(set(item_encoder.classes_)).values
+    if not valid.any():
+        return scores
 
-    valid = candidates["menu_key"].isin(set(item_encoder.classes_)).values
-    if not valid.any(): return scores
+    ctx_vec      = build_query_context_vector(req)
+    feature_rows = candidates.loc[valid, "feature_row"].astype(int).values
+    item_feats   = content_features_global[feature_rows]
+    ctx_tiled    = np.tile(ctx_vec, (len(item_feats), 1))
 
-    user_idx = user_encoder.transform([context_id])[0]
-    item_idx = item_encoder.transform(candidates.loc[valid, "menu_key"])
     inputs = {
-        "user_id": np.full(len(item_idx), user_idx, dtype="int32"),
-        "item_id": item_idx.astype("int32"),
+        "context_input": ctx_tiled,
+        "item_input":    item_feats
     }
     scores[valid] = ncf_model.predict(inputs, verbose=0).reshape(-1)
     return scores
 
-def load_surplus_candidates(path="surplus_predictions.csv") -> pd.DataFrame:
-    if not os.path.exists(path): return None
-    try:
-        surplus = pd.read_csv(path)
-        surplus.columns = [str(col).strip() for col in surplus.columns]
-        if "menu_item_name" not in surplus.columns: return None
-        surplus["menu_key"] = surplus["menu_item_name"].map(clean_text)
-        surplus["predicted_surplus"] = pd.to_numeric(surplus.get("predicted_surplus", 0.0), errors="coerce").fillna(0.0)
-        return surplus
-    except Exception:
+def load_surplus_candidates(path="surplus_predictions.csv"):
+    if not os.path.exists(path):
         return None
+    surplus = pd.read_csv(path)
+    surplus.columns = [str(col).strip() for col in surplus.columns]
+    if "menu_item_name" not in surplus.columns:
+        return None
+    surplus["menu_key"] = surplus["menu_item_name"].map(clean_text)
+    surplus["predicted_surplus"] = pd.to_numeric(
+        surplus.get("predicted_surplus", 0.0), errors="coerce"
+    ).fillna(0.0)
+    return surplus
 
 # ==============================================================================
 # 5. ENDPOINT 1: PREDIKSI SURPLUS (XGBoost)
@@ -362,67 +369,70 @@ async def get_recommendations(req: RecommendationRequest):
 
     try:
         candidates = hybrid_meta.copy()
-
-        # --- 1. MODIFIKASI DATA SURPLUS (Ubah ke Left Join agar produk tidak hilang) ---
         surplus_candidates = load_surplus_candidates("surplus_predictions.csv")
 
-        if surplus_candidates is not None and not surplus_candidates.empty:
-            candidates = candidates.merge(surplus_candidates[["menu_key", "predicted_surplus"]], on="menu_key", how="left")
-            candidates["predicted_surplus"] = candidates["predicted_surplus"].fillna(0.0)
+        if surplus_candidates is not None:
+            merged = candidates.merge(
+                surplus_candidates[["menu_key", "predicted_surplus"]],
+                on="menu_key", how="inner"
+            )
+            positive = merged[merged["predicted_surplus"] > 0].copy()
+            candidates = positive if not positive.empty \
+                else candidates.assign(predicted_surplus=1.0)  # fallback semua dapat skor
         else:
-            candidates["predicted_surplus"] = 0.0
+            # Tidak ada surplus file — pakai semua kandidat dengan skor dummy
+            wastage_col = "Wastage Food Amount" if "Wastage Food Amount" in candidates.columns else None
+            if wastage_col:
+                candidates = candidates.assign(predicted_surplus=candidates[wastage_col].fillna(1.0))
+                candidates["predicted_surplus"] = candidates["predicted_surplus"].replace(0, 1.0)
+            else:
+                candidates = candidates.assign(predicted_surplus=1.0)
 
-        # Backup fill jika nilainya bernilai default negatif atau kosong
-        if "Wastage Food Amount" in candidates.columns:
-            candidates["predicted_surplus"] = candidates["predicted_surplus"].where(candidates["predicted_surplus"] > 0, candidates["Wastage Food Amount"].fillna(0.0))
-        elif "quantity_sold" in candidates.columns:
-            candidates["predicted_surplus"] = candidates["predicted_surplus"].where(candidates["predicted_surplus"] > 0, candidates["quantity_sold"].fillna(0.0))
+        if candidates.empty:
+            return {
+                "status": "success",
+                "message": "Tidak ada menu surplus saat ini.",
+                "recommendations": []
+            }
 
-        # --- 2. HITUNG SKOR PILAR REKOMENDASI ---
         query_vector = build_query_hybrid_vector(req)
         feature_rows = candidates["feature_row"].astype(int).values
+        hybrid_sim   = cosine_similarity(
+            query_vector.reshape(1, -1), hybrid_features[feature_rows]
+        ).reshape(-1)
+        hybrid_sim   = (hybrid_sim + 1.0) / 2.0
 
-        # Pilar 1: Hybrid Similarity (50%)
-        hybrid_sim = cosine_similarity(query_vector.reshape(1, -1), hybrid_features[feature_rows]).reshape(-1)
-        hybrid_sim = (hybrid_sim + 1.0) / 2.0
-
-        # Pilar 2: NCF Score (30%)
-        ncf_scores = compute_ncf_scores(candidates, req)
-
-        # Pilar 3: Surplus Boost (20%)
+        ncf_scores    = compute_ncf_scores(candidates, req)
         surplus_boost = normalize_01(candidates["predicted_surplus"].values)
-        if len(surplus_boost) == 0:
-            surplus_boost = np.zeros(len(candidates), dtype="float32")
 
-        # --- 3. SKOR AKHIR ---
-        hybrid_weight, ncf_weight, surplus_weight = 0.50, 0.30, 0.20
-        candidates["final_score"] = (hybrid_weight * hybrid_sim + ncf_weight * ncf_scores + surplus_weight * surplus_boost)
+        hybrid_weight, ncf_weight, surplus_weight = 0.60, 0.35, 0.05
+        candidates["final_score"] = (
+            hybrid_weight  * hybrid_sim
+            + ncf_weight   * ncf_scores
+            + surplus_weight * surplus_boost
+        )
 
-        # Ambil peringkat terbaik berdasarkan target top_k
+        candidates["ncf_score"] = ncf_scores  # tambahkan ini sebelum filter
+        candidates = candidates[
+        (candidates["final_score"] >= 0.40) &
+        (candidates["ncf_score"]   >= 0.05)
+        ].reset_index(drop=True) if "ncf_score" in candidates.columns else \
+        candidates[candidates["final_score"] >= 0.40].reset_index(drop=True)
+
         final_recs = candidates.sort_values("final_score", ascending=False).head(req.top_k).reset_index(drop=True)
 
-        # --- 4. INTEGRASI ID PRODUK (Dibuat super kuat dan presisi) ---
+        # Ambil IDs (logika sama seperti sebelumnya)
         top_ids = []
-
-        # Prioritas 1: Ambil kolom 'id' murni hasil sinkronisasi PostgreSQL
         if "id" in final_recs.columns:
             top_ids = final_recs["id"].dropna().astype(int).tolist()
-
-        # Prioritas 2: Coba ekstrak jika berada di kolom 'restaurant_id'
-        elif "restaurant_id" in final_recs.columns:
-            top_ids = final_recs["restaurant_id"].dropna().astype(int).tolist()
-
-        # Prioritas 3: Ekstrak digit angka dari string 'menu_key' jika kolom lain absen
         elif "menu_key" in final_recs.columns:
             extracted = final_recs["menu_key"].str.extract(r'(\d+)')
             if not extracted.empty and extracted[0].dropna().shape[0] > 0:
                 top_ids = extracted[0].dropna().astype(int).tolist()
-
-        # Proteksi Akhir: Jika tidak terdeteksi ID sama sekali, ambil index urutan baris + 1 sebagai fallback dinamis
         if not top_ids:
             top_ids = (final_recs.index + 1).tolist()
 
-        print(print(f"🎯 AI Berhasil Menghitung Rekomendasi IDs: {top_ids}"))
+        print(f"🎯 AI Berhasil Menghitung Rekomendasi IDs: {top_ids}")
 
         return {
             "status": "success",

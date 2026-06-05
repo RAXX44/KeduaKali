@@ -1,8 +1,15 @@
-id,restaurant_id,category,menu_item_name,actual_selling_price,menu_key,feature_row,restaurant_type,meal_type,weather_condition
-7,1,Roti & Kue,Roti Croisnt,32333,roti croisnt,0,casual dining,lunch,sunny
-4,2,Minuman,Badak,10000,badak,1,casual dining,lunch,sunny
-5,1,Nasi & Lauk,Ayam Bakar,21000,ayam bakar,2,casual dining,lunch,sunny
-2,1,Nasi & Lauk,Ayam,20000,ayam,3,casual dining,lunch,sunny
-8,1,Roti & Kue,Roti jala,23133,roti jala,4,casual dining,lunch,sunny
-9,1,Makanan & Minuman,sprite,224933,sprite,5,casual dining,lunch,sunny
-11,2,Nasi & Lauk,ayam goreng,100023,ayam goreng,6,casual dining,lunch,sunny
+menu_key,restaurant_id,restaurant_type,menu_item_name,meal_type,key_ingredients_tags,weather_condition,actual_selling_price,typical_ingredient_cost,observed_market_price,Wastage Food Amount,has_promotion,special_event,is_weekend,price_margin,price_segment,waste_level,quantity_sold,quantity_norm,waste_norm,feature_row
+beef rendang,23,fine dining,beef rendang,dinner,"beef, coconut milk, galangal, lemongrass, spices, chili",rainy,44.615,9.0,28.25,0.0,1,1,1,35.615,premium,no_waste,105.49201277955271,0.06324461,0.0,0
+cendol,1,food stall,cendol,lunch,"rice flour jelly, coconut milk, palm sugar, red beans",sunny,7.47,2.0,5.12,0.0,1,1,1,5.47,budget,no_waste,249.89499589827727,0.14981715,0.0,1
+char kway teow,29,food stall,char kway teow,dinner,"flat rice noodles, prawns, cockles, bean sprouts, chives, soy sauce",cloudy,20.825000000000003,5.0,12.475000000000001,0.0,1,1,1,15.825000000000001,regular,no_waste,170.95478723404256,0.10249088,0.0,2
+chicken chop,46,casual dining,chicken chop,lunch,"chicken thigh, black pepper sauce, fries, coleslaw",cloudy,46.17,8.0,30.73,0.0,1,1,1,38.17,premium,no_waste,158.21212121212122,0.0948514,0.0,3
+chicken rice,29,food stall,chicken rice,dinner,"chicken, rice, ginger, garlic, chili sauce, cucumber",cloudy,15.344999999999999,4.0,9.84,0.0,1,1,1,11.344999999999999,regular,no_waste,233.38023952095807,0.13991621,0.0,4
+iced lemon tea,3,cafe,iced lemon tea,lunch,"black tea, lemon, sugar syrup",sunny,6.13,1.2,4.62,0.0,1,1,1,4.93,budget,no_waste,347.5997045790251,0.20839311,0.0,5
+kaya toast set,1,food stall,kaya toast set,breakfast,"white bread, kaya, butter, soft-boiled eggs",rainy,9.54,2.8,7.27,0.0,1,1,1,6.739999999999999,regular,no_waste,437.0289156626506,0.26200774,0.0,6
+laksa,11,food stall,laksa,lunch,"rice noodles, fish broth, tamarind, shrimp paste, cucumber, mint",sunny,15.63,4.5,10.83,0.0,1,1,1,11.13,regular,no_waste,199.77637130801688,0.11977001,0.0,7
+mushroom soup,5,cafe,mushroom soup,dinner,"mushrooms, cream, onion, garlic, vegetable broth",cloudy,20.74,3.5,13.39,0.0,1,1,1,17.24,regular,no_waste,104.56631892697466,0.06268964,0.0,8
+nasi lemak,28,fine dining,nasi lemak,breakfast,"rice, coconut milk, sambal, anchovies, egg, peanuts",sunny,10.254999999999999,2.5,7.9,0.0,1,1,1,7.755,regular,no_waste,344.6732522796353,0.20663865,0.0,9
+roti canai,22,food stall,roti canai,dinner,"flour, ghee, egg, water, curry",sunny,2.46,0.8,1.8,0.0,1,1,1,1.66,budget,no_waste,405.814447592068,0.24329405,0.0,10
+spaghetti carbonara,7,casual dining,spaghetti carbonara,dinner,"spaghetti, eggs, cheese, beef bacon, black pepper",sunny,52.04,9.0,33.94,0.0,1,1,1,43.04,premium,no_waste,135.93284671532848,0.08149451,0.0,11
+tandoori chicken,2,food stall,tandoori chicken,dinner,"chicken, yogurt, tandoori masala, ginger, garlic",cloudy,25.935000000000002,7.0,15.965,0.0,1,1,1,18.935000000000002,premium,no_waste,125.41046831955923,0.07518613,0.0,12
+teh tarik,30,cafe,teh tarik,dinner,"black tea, condensed milk, evaporated milk",cloudy,3.01,0.9,2.31,0.0,1,1,1,2.11,budget,no_waste,560.6591107236269,0.33612657,0.0,13
