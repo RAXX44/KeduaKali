@@ -112,7 +112,7 @@ Express: aiController.getRecommendations()
 FastAPI: POST /api/recommend  ← payload konteks (cuaca, hari, meal type, dsb.)
         │
         ▼
-Hybrid Score: similarity (50%) + NCF (30%) + surplus boost (20%)
+Hybrid Score: hybrid_similarity (60%) + NCF (35%) + surplus boost (5%)
         │
         ▼
 Express: SELECT products WHERE id = ANY([12, 5, 8...]) AND stok > 0
@@ -132,7 +132,7 @@ React: Render ProductCard — Rekomendasi Ditampilkan ✨
 
 **Bobot Hybrid Recommender:**
 ```
-Final Score = (content_similarity × 0.50) + (ncf_score × 0.30) + (surplus_boost × 0.20)
+Final Score = (hybrid_similarity × 0.60) + (ncf_score × 0.35) + (surplus_boost × 0.05)
 ```
 
 ---
