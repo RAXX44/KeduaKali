@@ -187,9 +187,9 @@ Final Score = (content_similarity × 0.50) + (ncf_score × 0.30) + (surplus_boos
 | 🌐 **Frontend (Konsumen & Admin)** | https://kedua-kali.vercel.app |
 | ⚡ **Backend API** | https://keduakali-production.up.railway.app |
 | 🤖 **AI Service (Swagger Docs)** | https://hearty-mindfulness-production-70b9.up.railway.app/docs |
-| 📊 **Dashboard Streamlit** | *(link Streamlit)* |
-| 📓 **Main Notebook** | *(link Colab/Kaggle)* |
-| 📋 **A/B Testing** | *(link)* |
+| 📊 **Dashboard Streamlit** | *[(link Streamlit)](https://dashboard-keduakali.streamlit.app/)* |
+| 📓 **Main Notebook** | *[(link Colab)](https://colab.research.google.com/drive/1PlE1cknDO4sFTSZrOTNILOp2Nn2AVXCK?usp=sharing)* |
+| 📋 **A/B Testing** | *[(link)](https://colab.research.google.com/drive/1xQw_ZA_2lLn0PBI94LFR9FMHV3LfzoM1?usp=sharing)* |
 | 🏗️ **Prediksi Surplus** | *(link)* |
 | 🎯 **System Recommendation** | *(link)* |
 
